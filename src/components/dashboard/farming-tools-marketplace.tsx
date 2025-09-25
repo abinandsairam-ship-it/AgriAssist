@@ -39,7 +39,7 @@ export function FarmingToolsMarketplace() {
       <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {tools.map(tool => (
           <Card key={tool.id} className="overflow-hidden">
-            <div className="relative aspect-4/3">
+            <div className="relative aspect-[4/3]">
               <Image src={tool.imageUrl} alt={tool.name} fill className="object-cover" />
             </div>
             <div className="p-4">

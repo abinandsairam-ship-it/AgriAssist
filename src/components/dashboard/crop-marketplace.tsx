@@ -42,7 +42,7 @@ export function CropMarketplace() {
       <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {crops.map(crop => (
           <Card key={crop.id} className="overflow-hidden">
-            <div className="relative aspect-4/3">
+            <div className="relative aspect-[4/3]">
               <Image src={crop.imageUrl} alt={crop.name} fill className="object-cover" />
             </div>
             <div className="p-4">
