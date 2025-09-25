@@ -83,7 +83,7 @@ export default function DashboardPage() {
         </p>
       </header>
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-1 h-fit">
           <CardHeader>
             <CardTitle>New Prediction</CardTitle>
           </CardHeader>

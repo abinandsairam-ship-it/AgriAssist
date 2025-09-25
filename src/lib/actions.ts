@@ -1,6 +1,7 @@
 "use server";
 import { storeCropData } from '@/ai/flows/store-crop-data-in-firestore';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
+import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import type { Prediction } from '@/lib/definitions';
 
 const MOCK_CROPS = ['Wheat', 'Corn', 'Rice', 'Tomato', 'Potato'];
@@ -33,6 +34,19 @@ export async function getPrediction(
   const confidence = Math.random() * (0.99 - 0.75) + 0.75; // Confidence between 75% and 99%
   const timestamp = Date.now();
 
+  let doctorsOpinion;
+  try {
+    doctorsOpinion = await getDoctorsOpinion({ crop: cropType, condition });
+  } catch (e) {
+    console.error('Error getting doctor\'s opinion:', e);
+    // Fallback to a default message
+    doctorsOpinion = {
+      recommendation: "Could not retrieve AI doctor's opinion. Please try again.",
+      recommendedMedicines: [],
+      relatedVideos: [],
+    };
+  }
+
   try {
     await storeCropData({
       timestamp,
@@ -53,6 +67,14 @@ export async function getPrediction(
     confidence,
     imageUrl,
     timestamp,
+    recommendation: doctorsOpinion.recommendation,
+    recommendedMedicines: doctorsOpinion.recommendedMedicines,
+    relatedVideos: doctorsOpinion.relatedVideos,
+    weather: {
+      location: 'Punjab, India',
+      temperature: '32°C',
+      condition: 'Sunny',
+    },
     newPrediction: true,
   };
 
