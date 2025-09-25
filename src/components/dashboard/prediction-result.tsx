@@ -31,15 +31,19 @@ export function PredictionResult({ result }: PredictionResultProps) {
 
   useEffect(() => {
     if (currentPrediction) {
-      setIsTranslating(true);
-      Promise.all([
-        getTranslatedText(currentPrediction.condition, language),
-        getTranslatedText(currentPrediction.recommendation, language),
-      ]).then(([condition, recommendation]) => {
-        setTranslatedCondition(condition);
-        setTranslatedRecommendation(recommendation);
-        setIsTranslating(false);
-      });
+      setTranslatedCondition(currentPrediction.condition);
+      setTranslatedRecommendation(currentPrediction.recommendation);
+      if (language !== 'en') {
+        setIsTranslating(true);
+        Promise.all([
+          getTranslatedText(currentPrediction.condition, language),
+          getTranslatedText(currentPrediction.recommendation, language),
+        ]).then(([condition, recommendation]) => {
+          setTranslatedCondition(condition);
+          setTranslatedRecommendation(recommendation);
+          setIsTranslating(false);
+        });
+      }
     }
   }, [currentPrediction, language]);
 
@@ -97,7 +101,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Condition
               </h3>
-              {isTranslating ? (
+              {isTranslating && language !== 'en' ? (
                 <Skeleton className="h-7 w-32" />
               ) : (
                 <div className="flex items-center gap-2">
@@ -159,7 +163,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardTitle>Doctor's Opinion</CardTitle>
         </CardHeader>
         <CardContent>
-          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{translatedRecommendation}</p>}
+          {isTranslating && language !== 'en' ? <Skeleton className="h-20 w-full" /> : <p>{translatedRecommendation}</p>}
         </CardContent>
       </Card>
 
