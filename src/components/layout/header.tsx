@@ -50,9 +50,6 @@ export function AppHeader() {
         <div className="hidden md:flex items-center gap-2 ml-6">
           <DummyLanguageSwitcher />
           <ThemeToggle />
-          <Button asChild>
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
         </div>
 
         <div className="md:hidden flex items-center ml-2">
@@ -76,11 +73,6 @@ export function AppHeader() {
                     </Link>
                   </SheetClose>
                 ))}
-                <SheetClose asChild>
-                  <Button asChild className="mt-4">
-                    <Link href="/dashboard">Dashboard</Link>
-                  </Button>
-                </SheetClose>
               </nav>
             </SheetContent>
           </Sheet>
