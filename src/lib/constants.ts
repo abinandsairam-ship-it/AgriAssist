@@ -5,4 +5,5 @@ export const LANGUAGES = [
   { value: 'bn', label: 'বাংলা' }, // Bengali
   { value: 'te', label: 'తెలుగు' }, // Telugu
   { value: 'ta', label: 'தமிழ்' }, // Tamil
+  { value: 'ml', label: 'മലയാളം' }, // Malayalam
 ];

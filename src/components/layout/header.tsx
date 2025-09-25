@@ -51,7 +51,7 @@ export function AppHeader() {
           <DummyLanguageSwitcher />
           <ThemeToggle />
           <Button asChild>
-            <Link href="/dashboard">Get Started</Link>
+            <Link href="/dashboard">Dashboard</Link>
           </Button>
         </div>
 
@@ -78,7 +78,7 @@ export function AppHeader() {
                 ))}
                 <SheetClose asChild>
                   <Button asChild className="mt-4">
-                    <Link href="/dashboard">Get Started</Link>
+                    <Link href="/dashboard">Dashboard</Link>
                   </Button>
                 </SheetClose>
               </nav>
