@@ -14,12 +14,76 @@ import { getTranslatedText } from '@/lib/actions';
 import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, Video, ShoppingCart, Tractor } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, Video, ShoppingCart, Tractor, ThumbsUp, MessageSquare } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 
 type PredictionResultProps = {
   result: (Prediction & { newPrediction: boolean }) | { error: string } | undefined;
 };
+
+const VideoCard = ({ video }: { video: RelatedVideo }) => {
+  const [likes, setLikes] = useState(Math.floor(Math.random() * 100));
+  const [comments, setComments] = useState<{ id: number; text: string }[]>([]);
+  const [newComment, setNewComment] = useState('');
+
+  const handleLike = () => {
+    setLikes(likes + 1);
+  };
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      setComments([...comments, { id: Date.now(), text: newComment }]);
+      setNewComment('');
+    }
+  };
+
+  return (
+    <div className="group border rounded-lg overflow-hidden">
+      <a href={video.videoUrl} target="_blank" rel="noopener noreferrer">
+        <div className="relative aspect-video">
+          <Image
+            src={video.thumbnailUrl}
+            alt={video.title}
+            fill
+            className="object-cover transition-transform group-hover:scale-105"
+          />
+        </div>
+      </a>
+      <div className="p-4 space-y-3">
+        <p className="font-medium group-hover:text-primary">{video.title}</p>
+        <div className="flex items-center justify-between text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={handleLike} className="flex items-center gap-2">
+            <ThumbsUp className="h-4 w-4" />
+            <span>{likes}</span>
+          </Button>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span>{comments.length} Comments</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {comments.map(comment => (
+            <div key={comment.id} className="text-sm bg-muted/50 p-2 rounded-md">
+              {comment.text}
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input 
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-1"
+          />
+          <Button onClick={handleAddComment} size="sm">Comment</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
@@ -200,12 +264,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
-              <a key={video.title} href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="group">
-                <div className="relative aspect-video rounded-lg overflow-hidden border">
-                  <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover transition-transform group-hover:scale-105" />
-                </div>
-                <p className="mt-2 text-sm font-medium group-hover:text-primary">{video.title}</p>
-              </a>
+              <VideoCard key={video.title} video={video} />
             ))}
           </CardContent>
         </Card>

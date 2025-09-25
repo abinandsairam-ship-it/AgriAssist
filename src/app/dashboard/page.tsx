@@ -10,6 +10,9 @@ import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
+import { FarmingNews } from '@/components/dashboard/farming-news';
+import { FarmingToolsMarketplace } from '@/components/dashboard/farming-tools-marketplace';
+import { CropMarketplace } from '@/components/dashboard/crop-marketplace';
 
 const initialState = undefined;
 
@@ -203,6 +206,11 @@ export default function DashboardPage() {
              </Card>
           )}
         </div>
+      </div>
+      <div className="mt-8 space-y-8">
+        <FarmingNews />
+        <FarmingToolsMarketplace />
+        <CropMarketplace />
       </div>
     </div>
   );
