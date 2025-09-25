@@ -270,20 +270,6 @@ export function PredictionResult({ result }: PredictionResultProps) {
           </CardContent>
         </Card>
       )}
-
-      {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
-            <Video className="h-6 w-6 text-primary" />
-            <CardTitle>Related Farming Videos</CardTitle>
-          </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
-              <VideoCard key={video.title} video={video} />
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
