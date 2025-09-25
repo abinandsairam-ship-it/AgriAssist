@@ -68,7 +68,7 @@ export function AppSidebar() {
               isActive={pathname.startsWith('/dashboard/crop-detection')}
               tooltip="Crop Detection"
             >
-              <Link href="#">
+              <Link href="/dashboard">
                 <ScanLine />
                 <span>Crop Detection</span>
               </Link>
@@ -79,6 +79,7 @@ export function AppSidebar() {
               asChild
               isActive={pathname.startsWith('/dashboard/crop-suitability')}
               tooltip="Crop Suitability"
+              disabled
             >
               <Link href="#">
                 <Triangle />
@@ -91,6 +92,7 @@ export function AppSidebar() {
               asChild
               isActive={pathname.startsWith('/dashboard/issue-reporter')}
               tooltip="Issue Reporter"
+              disabled
             >
               <Link href="#">
                 <Bug />
