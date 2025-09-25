@@ -2,7 +2,7 @@
 
 import { useFormState } from 'react-dom';
 import { getPrediction } from '@/lib/actions';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,9 +10,7 @@ import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
-import { FarmingNews } from '@/components/dashboard/farming-news';
-import { FarmingToolsMarketplace } from '@/components/dashboard/farming-tools-marketplace';
-import { CropMarketplace } from '@/components/dashboard/crop-marketplace';
+import { CardDescription } from '@/components/ui/card';
 
 const initialState = undefined;
 
@@ -206,11 +204,6 @@ export default function DashboardPage() {
              </Card>
           )}
         </div>
-      </div>
-      <div className="mt-8 space-y-8">
-        <FarmingNews />
-        <FarmingToolsMarketplace />
-        <CropMarketplace />
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ import {
   User,
   Settings,
   Leaf,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,6 +47,18 @@ export function AppSidebar() {
               <Link href="/dashboard">
                 <LayoutGrid />
                 <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/dashboard/history')}
+              tooltip="History"
+            >
+              <Link href="/dashboard/history">
+                <History />
+                <span>History</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -91,7 +104,7 @@ export function AppSidebar() {
               isActive={pathname.startsWith('/dashboard/supply-store')}
               tooltip="Agri-Supply Store"
             >
-              <Link href="#">
+              <Link href="/dashboard/supply-store">
                 <ShoppingCart />
                 <span>Agri-Supply Store</span>
               </Link>
@@ -103,7 +116,7 @@ export function AppSidebar() {
               isActive={pathname.startsWith('/dashboard/farmers-market')}
               tooltip="Farmer's Market"
             >
-              <Link href="#">
+              <Link href="/dashboard/farmers-market">
                 <Store />
                 <span>Farmer's Market</span>
               </Link>
@@ -115,7 +128,7 @@ export function AppSidebar() {
               isActive={pathname.startsWith('/dashboard/news')}
               tooltip="Farming News"
             >
-              <Link href="#">
+              <Link href="/dashboard/news">
                 <Newspaper />
                 <span>Farming News</span>
               </Link>
