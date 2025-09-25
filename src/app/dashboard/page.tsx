@@ -1,43 +1,27 @@
 "use client";
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormState } from 'react-dom';
 import { getPrediction } from '@/lib/actions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, ImageUp, Loader2, X, Bot, Scan } from 'lucide-react';
-import Image from 'next/image';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
 const initialState = undefined;
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Predicting...
-        </>
-      ) : (
-        'Predict'
-      )}
-    </Button>
-  );
-}
-
 export default function DashboardPage() {
   const [state, formAction] = useFormState(getPrediction, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,11 +33,10 @@ export default function DashboardPage() {
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setHasCameraPermission(true);
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        setHasCameraPermission(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
@@ -68,7 +51,6 @@ export default function DashboardPage() {
 
     getCameraPermission();
     
-    // Cleanup function
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -82,19 +64,16 @@ export default function DashboardPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        if(formRef.current) {
-          const formData = new FormData(formRef.current);
-          if (file) {
-            formData.set('image', file);
-          }
-          formAction(formData);
-        }
+        const dataUri = reader.result as string;
+        setImagePreview(dataUri);
+        const formData = new FormData();
+        formData.append('imageUri', dataUri);
+        startTransition(() => formAction(formData));
       };
       reader.readAsDataURL(file);
     }
   };
-
+  
   const captureFromVideo = useCallback(() => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -105,15 +84,10 @@ export default function DashboardPage() {
       if (context) {
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         const dataUri = canvas.toDataURL('image/jpeg');
-        
-        canvas.toBlob(blob => {
-          if (blob && formRef.current) {
-            const formData = new FormData(formRef.current);
-            const imageFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
-            formData.set('image', imageFile);
-            formAction(formData);
-          }
-        }, 'image/jpeg');
+        setImagePreview(dataUri);
+        const formData = new FormData();
+        formData.append('imageUri', dataUri);
+        startTransition(() => formAction(formData));
       }
     }
   }, [formAction]);
@@ -151,15 +125,21 @@ export default function DashboardPage() {
             <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} action={formAction} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="image-upload">Live Camera Feed</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
                   <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                  {!hasCameraPermission && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center">
+                  {hasCameraPermission === false && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
                        <Camera className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground mt-2">Camera access is required.</p>
+                      <p className="text-muted-foreground mt-2">Camera access is required. Please grant permission in your browser.</p>
+                    </div>
+                  )}
+                  {hasCameraPermission === null && (
+                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
+                       <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+                      <p className="text-muted-foreground mt-2">Initializing camera...</p>
                     </div>
                   )}
                 </div>
@@ -179,25 +159,37 @@ export default function DashboardPage() {
                   type="button"
                   className="w-full"
                   onClick={captureFromVideo}
-                  disabled={!hasCameraPermission || (formRef.current && new FormData(formRef.current).has('image')) && (state && !('error' in state))}
+                  disabled={!hasCameraPermission || isPending}
                 >
-                  <Scan className="mr-2 h-4 w-4" /> Analyze Plant
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
+                   Analyze Plant
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isPending}
                 >
                   <ImageUp className="mr-2 h-4 w-4" /> Upload
                 </Button>
               </div>
-            </form>
+            </div>
           </CardContent>
         </Card>
 
         <div className="lg:col-span-2">
-          { currentPrediction ? (
+          { isPending ? (
+            <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+              <CardHeader>
+                <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
+                <CardTitle>Analyzing...</CardTitle>
+                <CardDescription>
+                  Our AI is inspecting your image. Please wait a moment.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          ) : currentPrediction ? (
             <PredictionResult result={currentPrediction} />
           ) : (
              <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">

@@ -4,37 +4,24 @@ import { translatePredictionResults } from '@/ai/flows/translate-prediction-resu
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import type { Prediction } from '@/lib/definitions';
-import {writeFile} from 'fs/promises';
-import {join} from 'path';
-
-
-async function fileToDataURI(file: File) {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  return `data:${file.type};base64,${buffer.toString('base64')}`;
-}
 
 export async function getPrediction(
   prevState: any,
   formData: FormData
 ): Promise<(Prediction & { newPrediction: boolean }) | { error: string }> {
-  const imageFile = formData.get('image') as File;
+  const imageUri = formData.get('imageUri') as string;
 
-  if (!imageFile || imageFile.size === 0) {
-    return { error: 'Please upload an image.' };
+  if (!imageUri) {
+    return { error: 'Please upload or capture an image.' };
   }
   
-  const tempFilePath = join('/tmp', imageFile.name);
-  await writeFile(tempFilePath, Buffer.from(await imageFile.arrayBuffer()));
-
   // In a real app, you would upload the image to a storage service (e.g., Firebase Storage)
-  // and get a public URL. For this demo, we'll use a placeholder.
-  const imageUrl = 'https://picsum.photos/seed/crop-result/600/400';
+  // and get a public URL. For this demo, we'll use a placeholder and the data URI for analysis.
+  const imageUrl = imageUri;
 
   let diagnosis;
   try {
-    const photoDataUri = await fileToDataURI(imageFile);
-    diagnosis = await diagnosePlant({ photoDataUri });
+    diagnosis = await diagnosePlant({ photoDataUri: imageUri });
   } catch (e) {
      console.error("Error diagnosing plant:", e);
      return { error: "Could not analyze the plant image. Please try again." };
@@ -57,11 +44,15 @@ export async function getPrediction(
   }
 
   try {
+    // For storage, we might not want to store the full data URI.
+    // In a real app, this would be a URL from a service like Cloud Storage.
+    // For now, we'll use a placeholder for the stored URL to keep Firestore documents light.
+    const placeholderUrl = 'https://picsum.photos/seed/crop-result/600/400';
     await storeCropData({
       timestamp,
       cropType,
       condition,
-      imageUrl,
+      imageUrl: placeholderUrl,
       confidence,
       // userId: "anonymous" // In a real app with auth
     });
@@ -74,7 +65,7 @@ export async function getPrediction(
     cropType,
     condition,
     confidence,
-    imageUrl,
+    imageUrl, // Use the captured/uploaded image for immediate display
     timestamp,
     recommendation: doctorsOpinion.recommendation,
     recommendedMedicines: doctorsOpinion.recommendedMedicines,
