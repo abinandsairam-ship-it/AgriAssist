@@ -23,30 +23,6 @@
       "description": "A smartphone displaying an agriculture app.",
       "imageUrl": "https://images.unsplash.com/photo-1616028904447-ffd088aff0e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmYXJtJTIwYXBwfGVufDB8fHx8MTc1ODgxNjgyOHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "farm app"
-    },
-    {
-      "id": "team-jane-doe",
-      "description": "Headshot of Jane Doe.",
-      "imageUrl": "https://images.unsplash.com/photo-1557053910-d9eadeed1c58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc1ODc1MTMyM3ww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "woman portrait"
-    },
-    {
-      "id": "team-john-smith",
-      "description": "Headshot of John Smith.",
-      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg3MDg5NTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "man portrait"
-    },
-    {
-      "id": "team-emily-moore",
-      "description": "Headshot of Emily Moore.",
-      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx3b21hbiUyMGhlYWRzaG90fGVufDB8fHx8MTc1ODgwODE2MXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "woman headshot"
-    },
-    {
-      "id": "team-chris-brown",
-      "description": "Headshot of Chris Brown.",
-      "imageUrl": "https://images.unsplash.com/photo-1595211877493-41a4e5f236b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYW4lMjBoZWFkc2hvdHxlbnwwfHx8fDE3NTg4MTY4Mjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "man headshot"
     }
   ]
 }
