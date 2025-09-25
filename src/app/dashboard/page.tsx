@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, ImageUp, Loader2, X } from 'lucide-react';
+import { Camera, ImageUp, Loader2, X, Bot, Scan } from 'lucide-react';
 import Image from 'next/image';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -33,10 +33,49 @@ function SubmitButton() {
 export default function DashboardPage() {
   const [state, formAction] = useFormState(getPrediction, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('Camera not supported on this device');
+        setHasCameraPermission(false);
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description:
+            'Please enable camera permissions in your browser settings to use this feature.',
+        });
+      }
+    };
+
+    getCameraPermission();
+    
+    // Cleanup function
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }, [toast]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,16 +83,40 @@ export default function DashboardPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+        if(formRef.current) {
+          const formData = new FormData(formRef.current);
+          if (file) {
+            formData.set('image', file);
+          }
+          formAction(formData);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
-  
-  const clearPreview = () => {
-    setImagePreview(null);
-    if(fileInputRef.current) fileInputRef.current.value = "";
-    if(cameraInputRef.current) cameraInputRef.current.value = "";
-  }
+
+  const captureFromVideo = useCallback(() => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        
+        canvas.toBlob(blob => {
+          if (blob && formRef.current) {
+            const formData = new FormData(formRef.current);
+            const imageFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
+            formData.set('image', imageFile);
+            formAction(formData);
+          }
+        }, 'image/jpeg');
+      }
+    }
+  }, [formAction]);
 
   useEffect(() => {
     if (state?.error) {
@@ -67,10 +130,10 @@ export default function DashboardPage() {
         title: 'Success!',
         description: 'Your crop has been analyzed.',
       });
-      clearPreview();
-      formRef.current?.reset();
     }
   }, [state, toast]);
+
+  const currentPrediction = state && "cropType" in state ? state : null;
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -79,50 +142,28 @@ export default function DashboardPage() {
           Crop Analysis Dashboard
         </h1>
         <p className="text-muted-foreground">
-          Upload an image of a crop to get an AI-powered analysis.
+          Use your camera to get an AI-powered analysis of your crop.
         </p>
       </header>
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-1 h-fit">
           <CardHeader>
-            <CardTitle>New Prediction</CardTitle>
+            <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} action={formAction} className="space-y-6">
+            <form ref={formRef} action={formAction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor='image-upload'>Upload Image</Label>
-                <div
-                  className="w-full h-48 border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50 cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {imagePreview ? (
-                    <>
-                      <Image
-                        src={imagePreview}
-                        alt="Image preview"
-                        fill
-                        className="object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-7 w-7 z-10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearPreview();
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="text-center text-muted-foreground">
-                      <ImageUp className="mx-auto h-12 w-12" />
-                      <p>Click to upload or use camera</p>
+                <Label htmlFor="image-upload">Live Camera Feed</Label>
+                <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
+                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                  {!hasCameraPermission && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center">
+                       <Camera className="h-12 w-12 text-muted-foreground" />
+                      <p className="text-muted-foreground mt-2">Camera access is required.</p>
                     </div>
                   )}
                 </div>
+                 <canvas ref={canvasRef} className="hidden"></canvas>
                 <Input
                   ref={fileInputRef}
                   id="image-upload"
@@ -132,35 +173,43 @@ export default function DashboardPage() {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                <Input
-                  ref={cameraInputRef}
-                  id="camera-upload"
-                  type="file"
-                  name="image"
-                  className="hidden"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileChange}
-                />
               </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
+                  className="w-full"
+                  onClick={captureFromVideo}
+                  disabled={!hasCameraPermission || (formRef.current && new FormData(formRef.current).has('image')) && (state && !('error' in state))}
+                >
+                  <Scan className="mr-2 h-4 w-4" /> Analyze Plant
+                </Button>
+                <Button
+                  type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <Camera className="mr-2 h-4 w-4" /> Use Camera
+                  <ImageUp className="mr-2 h-4 w-4" /> Upload
                 </Button>
               </div>
-
-              <SubmitButton />
             </form>
           </CardContent>
         </Card>
 
         <div className="lg:col-span-2">
-          <PredictionResult result={state} />
+          { currentPrediction ? (
+            <PredictionResult result={currentPrediction} />
+          ) : (
+             <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+                <CardHeader>
+                  <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
+                  <CardTitle>Awaiting Analysis</CardTitle>
+                  <CardDescription>
+                    Point your camera at a plant and click "Analyze Plant".
+                  </CardDescription>
+                </CardHeader>
+             </Card>
+          )}
         </div>
       </div>
     </div>
