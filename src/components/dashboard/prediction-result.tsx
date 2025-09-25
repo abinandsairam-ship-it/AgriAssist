@@ -87,29 +87,44 @@ const VideoCard = ({ video }: { video: RelatedVideo }) => {
 
 export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
-  const [translatedCondition, setTranslatedCondition] = useState('');
-  const [translatedRecommendation, setTranslatedRecommendation] = useState('');
+  const [originalText, setOriginalText] = useState<{ condition: string; recommendation: string } | null>(null);
+  const [translatedText, setTranslatedText] = useState<{ condition: string; recommendation: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
     if (currentPrediction) {
-      setTranslatedCondition(currentPrediction.condition);
-      setTranslatedRecommendation(currentPrediction.recommendation);
-      if (language !== 'en') {
-        setIsTranslating(true);
-        Promise.all([
-          getTranslatedText(currentPrediction.condition, language),
-          getTranslatedText(currentPrediction.recommendation, language),
-        ]).then(([condition, recommendation]) => {
-          setTranslatedCondition(condition);
-          setTranslatedRecommendation(recommendation);
-          setIsTranslating(false);
-        });
-      }
+      const original = {
+        condition: currentPrediction.condition,
+        recommendation: currentPrediction.recommendation,
+      };
+      setOriginalText(original);
+      setTranslatedText(original);
     }
-  }, [currentPrediction, language]);
+  }, [currentPrediction]);
+
+  useEffect(() => {
+    if (!originalText) return;
+
+    if (language === 'en') {
+      setTranslatedText(originalText);
+      return;
+    }
+
+    setIsTranslating(true);
+    Promise.all([
+      getTranslatedText(originalText.condition, language),
+      getTranslatedText(originalText.recommendation, language),
+    ]).then(([condition, recommendation]) => {
+      setTranslatedText({ condition, recommendation });
+      setIsTranslating(false);
+    }).catch(() => {
+      // In case of error, revert to original text
+      setTranslatedText(originalText);
+      setIsTranslating(false);
+    });
+  }, [language, originalText]);
 
   if (!currentPrediction) {
     return (
@@ -165,7 +180,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Condition
               </h3>
-              {isTranslating && language !== 'en' ? (
+              {isTranslating ? (
                 <Skeleton className="h-7 w-32" />
               ) : (
                 <div className="flex items-center gap-2">
@@ -174,7 +189,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
                   ) : (
                     <AlertCircle className="h-5 w-5 text-destructive" />
                   )}
-                  <p className="text-lg font-semibold">{translatedCondition}</p>
+                  <p className="text-lg font-semibold">{translatedText?.condition}</p>
                 </div>
               )}
             </div>
@@ -227,7 +242,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardTitle>Doctor's Opinion</CardTitle>
         </CardHeader>
         <CardContent>
-          {isTranslating && language !== 'en' ? <Skeleton className="h-20 w-full" /> : <p>{translatedRecommendation}</p>}
+          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{translatedText?.recommendation}</p>}
         </CardContent>
       </Card>
 
