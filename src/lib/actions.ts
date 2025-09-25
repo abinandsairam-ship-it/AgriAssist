@@ -3,8 +3,8 @@ import { translatePredictionResults } from '@/ai/flows/translate-prediction-resu
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import type { Prediction } from '@/lib/definitions';
-import { initializeFirebase, addDocumentNonBlocking } from '@/firebase/server';
-import { collection } from 'firebase/firestore';
+import { storeCropDataInFirestore } from '@/ai/flows/store-crop-data-in-firestore';
+
 
 export async function getPrediction(
   prevState: any,
@@ -42,30 +42,6 @@ export async function getPrediction(
     };
   }
 
-  try {
-    const { firestore } = initializeFirebase();
-    const placeholderUrl = `https://picsum.photos/seed/${timestamp}/600/400`;
-    const cropData = {
-      timestamp,
-      cropType,
-      condition,
-      imageUrl: placeholderUrl,
-      confidence,
-      recommendation: doctorsOpinion.recommendation,
-      recommendedMedicines: doctorsOpinion.recommendedMedicines,
-      relatedVideos: doctorsOpinion.relatedVideos,
-      weather: {
-        location: 'Punjab, India',
-        temperature: '32°C',
-        condition: 'Sunny',
-      },
-    };
-    const cropDataCollection = collection(firestore, 'crop_data');
-    await addDoc(cropDataCollection, cropData);
-  } catch (e) {
-    console.error('Firestore storage failed:', e);
-  }
-
   const predictionResult: Prediction & { newPrediction: boolean } = {
     cropType,
     condition,
@@ -82,6 +58,17 @@ export async function getPrediction(
     },
     newPrediction: true,
   };
+  
+  try {
+    const placeholderUrl = `https://picsum.photos/seed/${timestamp}/600/400`;
+    await storeCropDataInFirestore({
+        ...predictionResult,
+        imageUrl: placeholderUrl, // store a placeholder in Firestore
+    });
+  } catch(e) {
+      console.error("Firestore storage failed:", e);
+      // We can still show the result to the user even if db save fails
+  }
 
   return predictionResult;
 }
@@ -100,11 +87,4 @@ export async function getTranslatedText(
     console.error('Translation failed:', error);
     return text; // Fallback to original text
   }
-}
-
-// Dummy addDoc function since we are not using the non-blocking one on the server
-async function addDoc(colRef: any, data: any) {
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
-  await db.collection(colRef.path).add(data);
 }
