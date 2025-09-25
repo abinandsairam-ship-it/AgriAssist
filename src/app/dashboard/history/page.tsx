@@ -1,10 +1,39 @@
-import { getPredictionHistory } from '@/lib/firebase';
+'use client';
+import { useMemo } from 'react';
+import { useCollection, useFirestore } from '@/firebase';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileClock } from 'lucide-react';
+import { FileClock, Loader2 } from 'lucide-react';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
+import type { HistoryItem } from '@/lib/definitions';
 
-export default async function HistoryPage() {
-  const history = await getPredictionHistory();
+export default function HistoryPage() {
+  const firestore = useFirestore();
+  const historyQuery = useMemo(
+    () =>
+      firestore
+        ? query(
+            collection(firestore, 'crop_data'),
+            orderBy('timestamp', 'desc'),
+            limit(20)
+          )
+        : null,
+    [firestore]
+  );
+
+  const {
+    data: history,
+    isLoading,
+    error,
+  } = useCollection<HistoryItem>(historyQuery);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full p-8">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -17,9 +46,17 @@ export default async function HistoryPage() {
         </p>
       </header>
 
-      {history.length > 0 ? (
+      {error && (
+        <Card>
+          <CardContent className="p-8 text-center text-destructive">
+            <p>Error loading history: {error.message}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {history && history.length > 0 ? (
         <HistoryList history={history} />
-      ) : (
+      ) : !isLoading ? (
         <Card className="mt-8">
           <CardContent className="p-12 flex flex-col items-center text-center">
             <FileClock className="h-16 w-16 text-muted-foreground mb-4" />
@@ -29,7 +66,7 @@ export default async function HistoryPage() {
             </p>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

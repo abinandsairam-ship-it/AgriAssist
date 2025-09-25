@@ -1,44 +1,30 @@
 "use server";
 
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+} from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase/server';
 import type { HistoryItem } from './definitions';
 
-function initializeFirebaseAdmin() {
-  if (!getApps().length) {
-    try {
-      const serviceAccount = JSON.parse(
-        process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-      );
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error('Error initializing Firebase Admin SDK:', error);
-      // Do not throw an error that crashes the app, just log it.
-      // The calling function will handle the empty result.
-    }
-  }
-}
-
 export async function getPredictionHistory(): Promise<HistoryItem[]> {
-  initializeFirebaseAdmin();
-  
-  if (!getApps().length) {
-    return [];
-  }
-
-  const db = getFirestore();
-
   try {
-    const snapshot = await db
-      .collection('crop_data')
-      .orderBy('timestamp', 'desc')
-      .limit(20)
-      .get();
+    const { firestore } = initializeFirebase();
+    const historyCollection = collection(firestore, 'crop_data');
+    const q = query(
+      historyCollection,
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+    const snapshot = await getDocs(q);
+
     if (snapshot.empty) {
       return [];
     }
+
     const history: HistoryItem[] = [];
     snapshot.forEach(doc => {
       const data = doc.data();
