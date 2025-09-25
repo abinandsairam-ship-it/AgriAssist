@@ -49,6 +49,10 @@ export async function getPredictionHistory(): Promise<HistoryItem[]> {
         confidence: data.confidence || 0,
         imageUrl: data.imageUrl || '',
         timestamp: data.timestamp || 0,
+        recommendation: data.recommendation || '',
+        recommendedMedicines: data.recommendedMedicines || [],
+        relatedVideos: data.relatedVideos || [],
+        weather: data.weather || null,
       });
     });
     return history;

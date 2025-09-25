@@ -47,13 +47,21 @@ export async function getPrediction(
     // For storage, we might not want to store the full data URI.
     // In a real app, this would be a URL from a service like Cloud Storage.
     // For now, we'll use a placeholder for the stored URL to keep Firestore documents light.
-    const placeholderUrl = 'https://picsum.photos/seed/crop-result/600/400';
+    const placeholderUrl = `https://picsum.photos/seed/${timestamp}/600/400`;
     await storeCropData({
       timestamp,
       cropType,
       condition,
       imageUrl: placeholderUrl,
       confidence,
+      recommendation: doctorsOpinion.recommendation,
+      recommendedMedicines: doctorsOpinion.recommendedMedicines,
+      relatedVideos: doctorsOpinion.relatedVideos,
+      weather: {
+        location: 'Punjab, India',
+        temperature: '32°C',
+        condition: 'Sunny',
+      },
       // userId: "anonymous" // In a real app with auth
     });
   } catch (e) {
