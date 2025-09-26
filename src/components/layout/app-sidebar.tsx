@@ -25,6 +25,7 @@ import {
   Leaf,
   History,
   Calendar,
+  Video,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -83,6 +84,17 @@ export function AppSidebar() {
                       <Link href="/dashboard/crop-suitability">
                         <Triangle />
                         <span>Crop Suitability</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                   <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/agri-videos')}
+                    >
+                      <Link href="/dashboard/agri-videos">
+                        <Video />
+                        <span>Agri Videos</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
