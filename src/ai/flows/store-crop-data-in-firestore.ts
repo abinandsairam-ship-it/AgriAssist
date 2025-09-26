@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to store crop data in Firestore.
@@ -15,6 +16,7 @@ import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
 
 // Define the input schema based on the Prediction type from lib/definitions
 const StoreCropDataInputSchema = z.object({
+  userId: z.string(),
   cropType: z.string(),
   condition: z.string(),
   confidence: z.number(),

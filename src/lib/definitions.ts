@@ -1,3 +1,4 @@
+
 export type RecommendedMedicine = {
   name: string;
   price: number;
@@ -26,9 +27,9 @@ export type Prediction = {
   recommendedMedicines: RecommendedMedicine[];
   relatedVideos: RelatedVideo[];
   weather: Weather;
+  userId?: string;
 };
 
 export type HistoryItem = Prediction & {
   id: string;
-  userId?: string;
 };

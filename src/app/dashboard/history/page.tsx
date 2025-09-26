@@ -9,7 +9,7 @@ import {
 import { HistoryList } from '@/components/dashboard/history-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileClock, Loader2, Lock } from 'lucide-react';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import type { HistoryItem } from '@/lib/definitions';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export default function HistoryPage() {
       firestore && user
         ? query(
             collection(firestore, 'crop_data'),
+            where('userId', '==', user.uid),
             orderBy('timestamp', 'desc'),
             limit(20)
           )
