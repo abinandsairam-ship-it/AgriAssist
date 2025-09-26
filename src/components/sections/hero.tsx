@@ -3,9 +3,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
+import { useUser } from '@/firebase';
+
 
 export function HeroSection() {
   const { t } = useTranslation();
+  const { user } = useUser();
+
 
   return (
     <section className="w-full py-20 md:py-32 lg:py-40 bg-card">
@@ -18,7 +22,7 @@ export function HeroSection() {
             {t('hero.description')}
           </p>
           <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/dashboard">{t('hero.cta')}</Link>
+            <Link href={user ? "/dashboard" : "/sign-in"}>{t('hero.cta')}</Link>
           </Button>
         </div>
       </div>
