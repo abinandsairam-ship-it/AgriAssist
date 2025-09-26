@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -12,7 +12,14 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Heart, MessageSquare, PlayCircle, Send, Video } from 'lucide-react';
+import {
+  Heart,
+  MessageSquare,
+  PlayCircle,
+  Send,
+  Video,
+  Languages,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +27,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { LANGUAGES } from '@/lib/constants';
 
 const videoData = [
   {
@@ -32,6 +47,7 @@ const videoData = [
       { id: 1, user: 'FarmerJoe', text: 'This was incredibly helpful!' },
       { id: 2, user: 'AgriPro', text: 'Great tips on pressure regulation.' },
     ],
+    lang: 'en',
   },
   {
     id: 2,
@@ -39,9 +55,8 @@ const videoData = [
     thumbnailUrl: 'https://picsum.photos/seed/organic-pests/800/450',
     videoUrl: 'https://www.youtube.com/embed/s-r-p2m-s-s',
     likes: 340,
-    comments: [
-      { id: 1, user: 'EcoFarms', text: 'Neem oil is a lifesaver.' },
-    ],
+    comments: [{ id: 1, user: 'EcoFarms', text: 'Neem oil is a lifesaver.' }],
+    lang: 'en',
   },
   {
     id: 3,
@@ -50,14 +65,50 @@ const videoData = [
     videoUrl: 'https://www.youtube.com/embed/s-k-d-2-s',
     likes: 56,
     comments: [],
+    lang: 'en',
+  },
+  {
+    id: 4,
+    title: 'ड्रिप सिंचाई में महारत हासिल करना',
+    thumbnailUrl: 'https://picsum.photos/seed/sinchai/800/450',
+    videoUrl: 'https://www.youtube.com/embed/exam-ple-hi-1',
+    likes: 210,
+    comments: [{ id: 1, user: 'KisanKumar', text: 'बहुत उपयोगी!' }],
+    lang: 'hi',
+  },
+  {
+    id: 5,
+    title: 'जैविक कीट नियंत्रण के लिए एक गाइड',
+    thumbnailUrl: 'https://picsum.photos/seed/jaivik-kheti/800/450',
+    videoUrl: 'https://www.youtube.com/embed/exam-ple-hi-2',
+    likes: 450,
+    comments: [
+      { id: 1, user: 'Ramesh', text: 'नीम का तेल वाकई कमाल है।' },
+      { id: 2, user: 'Sunita', text: 'धन्यवाद!' },
+    ],
+    lang: 'hi',
+  },
+  {
+    id: 6,
+    title: 'ਖੇਤੀ ਲਈ ਪਾਣੀ ਦੀ ਸੰਭਾਲ',
+    thumbnailUrl: 'https://picsum.photos/seed/pani-di-sambhal/800/450',
+    videoUrl: 'https://www.youtube.com/embed/exam-ple-pa-1',
+    likes: 180,
+    comments: [{ id: 1, user: 'JarnailSingh', text: 'ਬਹੁਤ ਵਧੀਆ ਜਾਣਕਾਰੀ।' }],
+    lang: 'pa',
   },
 ];
 
 export default function AgriVideosPage() {
-  const [videos, setVideos] = useState(videoData);
+  const [allVideos, setAllVideos] = useState(videoData);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+
+  const filteredVideos = useMemo(() => {
+    return allVideos.filter(video => video.lang === selectedLanguage);
+  }, [allVideos, selectedLanguage]);
 
   const handleLike = (videoId: number) => {
-    setVideos(prevVideos =>
+    setAllVideos(prevVideos =>
       prevVideos.map(video =>
         video.id === videoId ? { ...video, likes: video.likes + 1 } : video
       )
@@ -66,18 +117,39 @@ export default function AgriVideosPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-          <Video className="h-8 w-8" />
-          Agri Videos
-        </h1>
-        <p className="text-muted-foreground">
-          Watch tutorials, tips, and success stories from the farming community.
-        </p>
+      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+            <Video className="h-8 w-8" />
+            Agri Videos
+          </h1>
+          <p className="text-muted-foreground">
+            Watch tutorials, tips, and success stories from the farming
+            community.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Languages className="h-5 w-5 text-muted-foreground" />
+          <Select
+            value={selectedLanguage}
+            onValueChange={value => setSelectedLanguage(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select Language" />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map(lang => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </header>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {videos.map(video => (
+        {filteredVideos.map(video => (
           <Card key={video.id} className="flex flex-col">
             <CardHeader className="p-0">
               <Dialog>
@@ -120,7 +192,8 @@ export default function AgriVideosPage() {
                   <Heart className="h-4 w-4" /> {video.likes}
                 </Button>
                 <div className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4" /> {video.comments.length}
+                  <MessageSquare className="h-4 w-4" />{' '}
+                  {video.comments.length}
                 </div>
               </div>
             </CardContent>
@@ -143,7 +216,11 @@ export default function AgriVideosPage() {
                 )}
               </div>
               <div className="w-full flex items-center gap-2">
-                <Textarea placeholder="Add a comment..." rows={1} className="flex-grow resize-none" />
+                <Textarea
+                  placeholder="Add a comment..."
+                  rows={1}
+                  className="flex-grow resize-none"
+                />
                 <Button size="icon" variant="ghost">
                   <Send className="h-5 w-5" />
                 </Button>
