@@ -13,14 +13,20 @@ import { Languages } from 'lucide-react';
 type LanguageSwitcherProps = {
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
+  disabled?: boolean;
 };
 
 export function LanguageSwitcher({
   selectedLanguage,
   onLanguageChange,
+  disabled,
 }: LanguageSwitcherProps) {
   return (
-    <Select value={selectedLanguage} onValueChange={onLanguageChange}>
+    <Select
+      value={selectedLanguage}
+      onValueChange={onLanguageChange}
+      disabled={disabled}
+    >
       <SelectTrigger className="w-auto h-10 border-0 gap-2 focus:ring-0 bg-transparent">
         <Languages className="h-5 w-5 text-muted-foreground" />
         <SelectValue placeholder="Language" />

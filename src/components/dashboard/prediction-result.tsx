@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -11,86 +11,26 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getTranslatedText } from '@/lib/actions';
-import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
+import type { Prediction, RecommendedMedicine } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, Video, ShoppingCart, Tractor, ThumbsUp, MessageSquare } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 
 type PredictionResultProps = {
   result: (Prediction & { newPrediction: boolean }) | { error: string } | undefined;
 };
 
-const VideoCard = ({ video }: { video: RelatedVideo }) => {
-  const [likes, setLikes] = useState(Math.floor(Math.random() * 100));
-  const [comments, setComments] = useState<{ id: number; text: string }[]>([]);
-  const [newComment, setNewComment] = useState('');
-
-  const handleLike = () => {
-    setLikes(likes + 1);
-  };
-
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      setComments([...comments, { id: Date.now(), text: newComment }]);
-      setNewComment('');
-    }
-  };
-
-  return (
-    <div className="group border rounded-lg overflow-hidden">
-      <a href={video.videoUrl} target="_blank" rel="noopener noreferrer">
-        <div className="relative aspect-video">
-          <Image
-            src={video.thumbnailUrl}
-            alt={video.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-          />
-        </div>
-      </a>
-      <div className="p-4 space-y-3">
-        <p className="font-medium group-hover:text-primary">{video.title}</p>
-        <div className="flex items-center justify-between text-muted-foreground">
-          <Button variant="ghost" size="sm" onClick={handleLike} className="flex items-center gap-2">
-            <ThumbsUp className="h-4 w-4" />
-            <span>{likes}</span>
-          </Button>
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span>{comments.length} Comments</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {comments.map(comment => (
-            <div key={comment.id} className="text-sm bg-muted/50 p-2 rounded-md">
-              {comment.text}
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Input 
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
-            className="flex-1"
-          />
-          <Button onClick={handleAddComment} size="sm">Comment</Button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
-  const [originalText, setOriginalText] = useState<{ condition: string; recommendation: string } | null>(null);
-  const [translatedText, setTranslatedText] = useState<{ condition: string; recommendation: string } | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  
+  const [isTranslating, startTransition] = useTransition();
+
+  // Store both original and translated text together
+  const [predictionText, setPredictionText] = useState<{
+    original: { condition: string; recommendation: string };
+    translated: { condition: string; recommendation: string };
+  } | null>(null);
+
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
@@ -99,32 +39,48 @@ export function PredictionResult({ result }: PredictionResultProps) {
         condition: currentPrediction.condition,
         recommendation: currentPrediction.recommendation,
       };
-      setOriginalText(original);
-      setTranslatedText(original);
+      setPredictionText({
+        original: original,
+        translated: original, // Start with translated as original
+      });
+      // If language is not english, trigger a new translation
+      if (language !== 'en') {
+        handleLanguageChange(language, original);
+      }
     }
   }, [currentPrediction]);
 
-  useEffect(() => {
-    if (!originalText) return;
 
-    if (language === 'en') {
-      setTranslatedText(originalText);
+  const handleLanguageChange = (newLanguage: string, baseText: { condition: string; recommendation: string }) => {
+    setLanguage(newLanguage);
+
+    if (newLanguage === 'en') {
+      setPredictionText(prev => prev ? { ...prev, translated: baseText } : null);
       return;
     }
 
-    setIsTranslating(true);
-    Promise.all([
-      getTranslatedText(originalText.condition, language),
-      getTranslatedText(originalText.recommendation, language),
-    ]).then(([condition, recommendation]) => {
-      setTranslatedText({ condition, recommendation });
-      setIsTranslating(false);
-    }).catch(() => {
-      // In case of error, revert to original text
-      setTranslatedText(originalText);
-      setIsTranslating(false);
+    startTransition(() => {
+      Promise.all([
+        getTranslatedText(baseText.condition, newLanguage),
+        getTranslatedText(baseText.recommendation, newLanguage),
+      ]).then(([translatedCondition, translatedRecommendation]) => {
+        setPredictionText(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            translated: {
+              condition: translatedCondition,
+              recommendation: translatedRecommendation,
+            },
+          };
+        });
+      }).catch(error => {
+        console.error("Translation failed:", error);
+        // On error, revert to original
+        setPredictionText(prev => prev ? { ...prev, translated: baseText } : null);
+      });
     });
-  }, [language, originalText]);
+  };
 
   if (!currentPrediction) {
     return (
@@ -156,7 +112,8 @@ export function PredictionResult({ result }: PredictionResultProps) {
             </div>
             <LanguageSwitcher
               selectedLanguage={language}
-              onLanguageChange={setLanguage}
+              onLanguageChange={(lang) => predictionText && handleLanguageChange(lang, predictionText.original)}
+              disabled={isTranslating}
             />
           </div>
         </CardHeader>
@@ -189,7 +146,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
                   ) : (
                     <AlertCircle className="h-5 w-5 text-destructive" />
                   )}
-                  <p className="text-lg font-semibold">{translatedText?.condition}</p>
+                  <p className="text-lg font-semibold">{predictionText?.translated.condition}</p>
                 </div>
               )}
             </div>
@@ -242,7 +199,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardTitle>Doctor's Opinion</CardTitle>
         </CardHeader>
         <CardContent>
-          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{translatedText?.recommendation}</p>}
+          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{predictionText?.translated.recommendation}</p>}
         </CardContent>
       </Card>
 
