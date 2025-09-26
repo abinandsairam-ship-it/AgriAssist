@@ -13,15 +13,12 @@ import {
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
 import { useTranslation } from '@/hooks/use-translation';
 
 export function AppHeader() {
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
-  const pathname = usePathname();
-  const showDashboardButton = !pathname.startsWith('/dashboard');
 
   const navLinks = [
     { href: '/', label: t('header.home') },
@@ -54,15 +51,9 @@ export function AppHeader() {
         <div className="hidden md:flex items-center gap-2 ml-6">
           <LanguageSwitcher selectedLanguage={language} onLanguageChange={setLanguage} />
           <ThemeToggle />
-          {showDashboardButton ? (
-            <Button asChild>
-              <Link href="/dashboard">{t('header.dashboard')}</Link>
-            </Button>
-          ) : (
-             <Button asChild>
-                <Link href="/sign-in">{t('header.signIn')}</Link>
-             </Button>
-          )}
+          <Button asChild>
+            <Link href="/sign-in">{t('header.signIn')}</Link>
+          </Button>
         </div>
 
         <div className="md:hidden flex items-center ml-2">
@@ -90,15 +81,9 @@ export function AppHeader() {
                   ))}
                 </nav>
                 <div className="mt-auto p-4">
-                   {showDashboardButton ? (
-                      <Button asChild className="w-full">
-                        <Link href="/dashboard">{t('header.dashboard')}</Link>
-                      </Button>
-                    ) : (
-                      <Button asChild className="w-full">
-                         <Link href="/sign-in">{t('header.signIn')}</Link>
-                      </Button>
-                    )}
+                  <Button asChild className="w-full">
+                     <Link href="/sign-in">{t('header.signIn')}</Link>
+                  </Button>
                 </div>
               </div>
             </SheetContent>
