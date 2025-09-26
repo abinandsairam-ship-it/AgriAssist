@@ -17,6 +17,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useLanguage } from '@/context/language-context';
 
 type PredictionResultProps = {
   result: (Prediction & { newPrediction: boolean }) | { error: string } | undefined;
@@ -28,35 +29,25 @@ type TranslatedContent = {
 };
 
 export function PredictionResult({ result }: PredictionResultProps) {
-  const [language, setLanguage] = useState('en');
+  const { language, setLanguage } = useLanguage();
   const [isTranslating, startTransition] = useTransition();
   const [translatedContent, setTranslatedContent] = useState<TranslatedContent | null>(null);
 
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
-    if (currentPrediction) {
-      // When a new prediction comes in, reset translation state.
-      setLanguage('en');
-      setTranslatedContent(null);
-    }
-  }, [currentPrediction]);
-
-
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage);
-    
+    // When a new prediction comes in, or the language changes, handle translation.
     if (!currentPrediction) return;
 
-    if (newLanguage === 'en') {
+    if (language === 'en') {
       setTranslatedContent(null); // Reset to original by clearing translated content
       return;
     }
 
     startTransition(() => {
       Promise.all([
-        getTranslatedText(currentPrediction.condition, newLanguage),
-        getTranslatedText(currentPrediction.recommendation, newLanguage),
+        getTranslatedText(currentPrediction.condition, language),
+        getTranslatedText(currentPrediction.recommendation, language),
       ]).then(([condition, recommendation]) => {
         setTranslatedContent({ condition, recommendation });
       }).catch(error => {
@@ -64,7 +55,8 @@ export function PredictionResult({ result }: PredictionResultProps) {
         setTranslatedContent(null); // Fallback to original on error
       });
     });
-  };
+  }, [currentPrediction, language]);
+
 
   if (!currentPrediction) {
     return (
@@ -99,7 +91,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
             </div>
             <LanguageSwitcher
               selectedLanguage={language}
-              onLanguageChange={handleLanguageChange}
+              onLanguageChange={setLanguage}
               disabled={isTranslating}
             />
           </div>
@@ -208,6 +200,27 @@ export function PredictionResult({ result }: PredictionResultProps) {
                   <div className='flex gap-2'>
                   <Button size="sm"><ShoppingCart className="mr-2 h-4 w-4" />Buy Now</Button>
                   <Button size="sm" variant="outline">Track Order</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4">
+            <Tractor className="h-6 w-6 text-primary" />
+            <CardTitle>Related Videos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
+                <div key={video.title} className="flex items-center gap-4 p-2 rounded-md border">
+                  <Image src={video.thumbnailUrl} alt={video.title} width={120} height={90} className="rounded-md object-cover" />
+                  <div>
+                    <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">{video.title}</a>
                   </div>
                 </div>
               ))}

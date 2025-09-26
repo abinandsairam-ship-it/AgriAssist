@@ -1,0 +1,63 @@
+
+{
+  "header": {
+    "home": "Home",
+    "about": "About",
+    "products": "Products",
+    "faq": "FAQ",
+    "contact": "Contact Us",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In"
+  },
+  "hero": {
+    "title": "Agriassist – Advanced Crop Detection and Health Monitoring",
+    "description": "Leveraging AI to provide accurate crop detection, soil analysis, and health recommendations for modern farming.",
+    "cta": "Get Started"
+  },
+  "about": {
+    "title": "Revolutionizing Agriculture with Technology",
+    "description": "Agriassist is dedicated to empowering farmers with cutting-edge AI and cloud computing solutions. Our mission is to enhance crop yields, promote sustainable farming practices, and ensure food security for future generations by making advanced technology accessible and easy to use for everyone in the agricultural sector."
+  },
+  "services": {
+    "title": "Our Services",
+    "description": "A suite of powerful tools designed for the modern farmer, providing actionable insights to improve agricultural outcomes.",
+    "items": [
+      { "title": "AI Crop Detection", "description": "Instantly identify crop types from images with high accuracy." },
+      { "title": "Crop Condition Analysis", "description": "Diagnose diseases, pest attacks, and nutrient deficiencies." },
+      { "title": "Crop Recommendation", "description": "Get expert advice on improving crop health and yield." },
+      { "title": "Weather & Location", "description": "Context-aware analysis using local weather and soil data." },
+      { "title": "Multi-language Support", "description": "Accessible to farmers across different regions and languages." }
+    ]
+  },
+  "products": {
+    "title": "Our Products",
+    "description": "Integrated hardware and software solutions to bring your farm into the future.",
+    "items": [
+      { "title": "Agri-Drone", "description": "Automated aerial analysis and precision spraying." },
+      { "title": "Soil Sense", "description": "Real-time soil health and nutrient monitoring sensor." },
+      { "title": "Agriassist Mobile", "description": "Our full suite of tools, available on your smartphone." }
+    ]
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "description": "Find answers to common questions about Agriassist.",
+    "items": [
+      {
+        "question": "What is Agriassist?",
+        "answer": "Agriassist is a web application that uses AI to help farmers detect crop types, identify diseases, and monitor crop health from images. It provides instant analysis and recommendations to improve farming outcomes."
+      },
+      {
+        "question": "How does the crop detection work?",
+        "answer": "Our platform uses advanced machine learning models trained on vast datasets of crop images. When you upload a picture, the AI analyzes visual patterns to identify the crop and detect signs of diseases or nutrient deficiencies."
+      },
+      {
+        "question": "Is my data secure?",
+        "answer": "Yes, data security is our top priority. All data transmissions are encrypted, and we use secure cloud infrastructure to store your images and prediction results. We adhere to strict privacy policies to protect your information."
+      },
+      {
+        "question": "What kind of support do you offer?",
+        "answer": "We offer comprehensive support through email and phone. Our team is ready to assist you with any technical issues or questions you may have about using the platform and interpreting the results."
+      }
+    ]
+  }
+}

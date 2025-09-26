@@ -14,19 +14,22 @@ import {
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { usePathname } from 'next/navigation';
-
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/#about', label: 'About' },
-  { href: '/#products', label: 'Products' },
-  { href: '/#faq', label: 'FAQ' },
-  { href: '/#contact', label: 'Contact Us' },
-];
+import { useLanguage } from '@/context/language-context';
+import { useTranslation } from '@/hooks/use-translation';
 
 export function AppHeader() {
-  const [lang, setLang] = React.useState('en');
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const pathname = usePathname();
   const showDashboardButton = !pathname.startsWith('/dashboard');
+
+  const navLinks = [
+    { href: '/', label: t('header.home') },
+    { href: '/#about', label: t('header.about') },
+    { href: '/#products', label: t('header.products') },
+    { href: '/#faq', label: t('header.faq') },
+    { href: '/#contact', label: t('header.contact') },
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -49,21 +52,21 @@ export function AppHeader() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2 ml-6">
-          <LanguageSwitcher selectedLanguage={lang} onLanguageChange={setLang} />
+          <LanguageSwitcher selectedLanguage={language} onLanguageChange={setLanguage} />
           <ThemeToggle />
           {showDashboardButton ? (
             <Button asChild>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/dashboard">{t('header.dashboard')}</Link>
             </Button>
           ) : (
              <Button asChild>
-                <Link href="/sign-in">Sign In</Link>
+                <Link href="/sign-in">{t('header.signIn')}</Link>
              </Button>
           )}
         </div>
 
         <div className="md:hidden flex items-center ml-2">
-          <LanguageSwitcher selectedLanguage={lang} onLanguageChange={setLang} />
+          <LanguageSwitcher selectedLanguage={language} onLanguageChange={setLanguage} />
           <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
@@ -89,11 +92,11 @@ export function AppHeader() {
                 <div className="mt-auto p-4">
                    {showDashboardButton ? (
                       <Button asChild className="w-full">
-                        <Link href="/dashboard">Dashboard</Link>
+                        <Link href="/dashboard">{t('header.dashboard')}</Link>
                       </Button>
                     ) : (
                       <Button asChild className="w-full">
-                         <Link href="/sign-in">Sign In</Link>
+                         <Link href="/sign-in">{t('header.signIn')}</Link>
                       </Button>
                     )}
                 </div>
