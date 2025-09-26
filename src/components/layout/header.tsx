@@ -51,9 +51,6 @@ export function AppHeader() {
         <div className="hidden md:flex items-center gap-2 ml-6">
           <LanguageSwitcher selectedLanguage={language} onLanguageChange={setLanguage} />
           <ThemeToggle />
-          <Button asChild>
-            <Link href="/sign-in">{t('header.signIn')}</Link>
-          </Button>
         </div>
 
         <div className="md:hidden flex items-center ml-2">
@@ -80,11 +77,6 @@ export function AppHeader() {
                     </SheetClose>
                   ))}
                 </nav>
-                <div className="mt-auto p-4">
-                  <Button asChild className="w-full">
-                     <Link href="/sign-in">{t('header.signIn')}</Link>
-                  </Button>
-                </div>
               </div>
             </SheetContent>
           </Sheet>
