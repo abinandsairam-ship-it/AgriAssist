@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
@@ -17,13 +17,15 @@ const initialState = undefined;
 export default function DashboardPage() {
   const [state, formAction] = useFormState(getPrediction, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -59,7 +61,12 @@ export default function DashboardPage() {
       }
     }
   }, [toast]);
-
+  
+  const handleFormSubmit = async (formData: FormData) => {
+    setIsPending(true);
+    formAction(formData);
+  }
+  
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -69,7 +76,7 @@ export default function DashboardPage() {
         setImagePreview(dataUri);
         const formData = new FormData();
         formData.append('imageUri', dataUri);
-        startTransition(() => formAction(formData));
+        handleFormSubmit(formData);
       };
       reader.readAsDataURL(file);
     }
@@ -88,23 +95,26 @@ export default function DashboardPage() {
         setImagePreview(dataUri);
         const formData = new FormData();
         formData.append('imageUri', dataUri);
-        startTransition(() => formAction(formData));
+        handleFormSubmit(formData);
       }
     }
-  }, [formAction]);
+  }, []);
 
   useEffect(() => {
-    if (state?.error) {
-      toast({
-        title: 'Prediction Error',
-        description: state.error,
-        variant: 'destructive',
-      });
-    } else if (state && 'newPrediction' in state) {
-      toast({
-        title: 'Success!',
-        description: 'Your crop has been analyzed.',
-      });
+    if (state) {
+      setIsPending(false);
+      if (state?.error) {
+        toast({
+          title: 'Prediction Error',
+          description: state.error,
+          variant: 'destructive',
+        });
+      } else if (state && 'newPrediction' in state) {
+        toast({
+          title: 'Success!',
+          description: 'Your crop has been analyzed.',
+        });
+      }
     }
   }, [state, toast]);
 
@@ -126,7 +136,7 @@ export default function DashboardPage() {
             <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <form ref={formRef} action={handleFormSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="image-upload">Live Camera Feed</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
@@ -175,7 +185,7 @@ export default function DashboardPage() {
                   <ImageUp className="mr-2 h-4 w-4" /> Upload
                 </Button>
               </div>
-            </div>
+            </form>
           </CardContent>
         </Card>
 

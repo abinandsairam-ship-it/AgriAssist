@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getTranslatedText } from '@/lib/actions';
-import type { Prediction, RecommendedMedicine } from '@/lib/definitions';
+import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor, Video } from 'lucide-react';
 import { Button } from '../ui/button';
 
 type PredictionResultProps = {
@@ -25,7 +25,6 @@ export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
   const [isTranslating, startTransition] = useTransition();
 
-  // Store both original and translated text together
   const [predictionText, setPredictionText] = useState<{
     original: { condition: string; recommendation: string };
     translated: { condition: string; recommendation: string };
@@ -41,28 +40,30 @@ export function PredictionResult({ result }: PredictionResultProps) {
       };
       setPredictionText({
         original: original,
-        translated: original, // Start with translated as original
+        translated: original, 
       });
-      // If language is not english, trigger a new translation
       if (language !== 'en') {
-        handleLanguageChange(language, original);
+        handleLanguageChange(language);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPrediction]);
 
 
-  const handleLanguageChange = (newLanguage: string, baseText: { condition: string; recommendation: string }) => {
+  const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
 
-    if (newLanguage === 'en') {
-      setPredictionText(prev => prev ? { ...prev, translated: baseText } : null);
+    if (newLanguage === 'en' && predictionText) {
+      setPredictionText(prev => prev ? { ...prev, translated: prev.original } : null);
       return;
     }
+    
+    if(!predictionText) return;
 
     startTransition(() => {
       Promise.all([
-        getTranslatedText(baseText.condition, newLanguage),
-        getTranslatedText(baseText.recommendation, newLanguage),
+        getTranslatedText(predictionText.original.condition, newLanguage),
+        getTranslatedText(predictionText.original.recommendation, newLanguage),
       ]).then(([translatedCondition, translatedRecommendation]) => {
         setPredictionText(prev => {
           if (!prev) return null;
@@ -76,8 +77,9 @@ export function PredictionResult({ result }: PredictionResultProps) {
         });
       }).catch(error => {
         console.error("Translation failed:", error);
-        // On error, revert to original
-        setPredictionText(prev => prev ? { ...prev, translated: baseText } : null);
+        if (predictionText) {
+          setPredictionText(prev => prev ? { ...prev, translated: prev.original } : null);
+        }
       });
     });
   };
@@ -112,7 +114,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
             </div>
             <LanguageSwitcher
               selectedLanguage={language}
-              onLanguageChange={(lang) => predictionText && handleLanguageChange(lang, predictionText.original)}
+              onLanguageChange={handleLanguageChange}
               disabled={isTranslating}
             />
           </div>
@@ -202,6 +204,25 @@ export function PredictionResult({ result }: PredictionResultProps) {
           {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{predictionText?.translated.recommendation}</p>}
         </CardContent>
       </Card>
+      
+      {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4">
+            <Video className="h-6 w-6 text-primary" />
+            <CardTitle>Related Farming Videos</CardTitle>
+          </CardHeader>
+          <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
+              <a key={video.videoUrl} href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="group">
+                <div className="relative aspect-video rounded-lg overflow-hidden border">
+                  <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover transition-transform group-hover:scale-105" />
+                </div>
+                <h3 className="mt-2 text-sm font-semibold group-hover:text-primary leading-tight">{video.title}</h3>
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {!isHealthy && currentPrediction.recommendedMedicines && currentPrediction.recommendedMedicines.length > 0 && (
         <Card>
