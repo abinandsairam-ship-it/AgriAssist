@@ -88,3 +88,5 @@ export async function getTranslatedText(
     return text; // Fallback to original text
   }
 }
+
+    

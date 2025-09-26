@@ -235,3 +235,5 @@ export function PredictionResult({ result }: PredictionResultProps) {
     </div>
   );
 }
+
+    
