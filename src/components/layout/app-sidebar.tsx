@@ -68,9 +68,9 @@ export function AppSidebar() {
                   <li>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={pathname === '/dashboard'}
+                      isActive={pathname.startsWith('/dashboard/crop-detection')}
                     >
-                      <Link href="/dashboard">
+                      <Link href="/dashboard/crop-detection">
                         <ScanLine />
                         <span>Crop Detection</span>
                       </Link>
