@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -50,9 +51,13 @@ export function AppHeader() {
         <div className="hidden md:flex items-center gap-2 ml-6">
           <DummyLanguageSwitcher />
           <ThemeToggle />
+          <Button asChild>
+            <Link href="/sign-in">Sign In</Link>
+          </Button>
         </div>
 
         <div className="md:hidden flex items-center ml-2">
+          <DummyLanguageSwitcher />
           <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
@@ -62,18 +67,25 @@ export function AppHeader() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px]">
-              <nav className="flex flex-col gap-4 mt-8">
-                {navLinks.map(link => (
-                  <SheetClose asChild key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="block px-2 py-1 text-lg hover:bg-accent rounded-md"
-                    >
-                      {link.label}
-                    </Link>
-                  </SheetClose>
-                ))}
-              </nav>
+              <div className="flex flex-col h-full">
+                <nav className="flex flex-col gap-4 mt-8">
+                  {navLinks.map(link => (
+                    <SheetClose asChild key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="block px-2 py-1 text-lg hover:bg-accent rounded-md"
+                      >
+                        {link.label}
+                      </Link>
+                    </SheetClose>
+                  ))}
+                </nav>
+                <div className="mt-auto p-4">
+                   <Button asChild className="w-full">
+                      <Link href="/sign-in">Sign In</Link>
+                    </Button>
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
         </div>
