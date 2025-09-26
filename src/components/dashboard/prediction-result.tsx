@@ -22,21 +22,23 @@ type PredictionResultProps = {
   result: (Prediction & { newPrediction: boolean }) | { error: string } | undefined;
 };
 
+type TranslatedContent = {
+  condition: string;
+  recommendation: string;
+};
+
 export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
   const [isTranslating, startTransition] = useTransition();
-
-  const [translatedCondition, setTranslatedCondition] = useState('');
-  const [translatedRecommendation, setTranslatedRecommendation] = useState('');
+  const [translatedContent, setTranslatedContent] = useState<TranslatedContent | null>(null);
 
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
     if (currentPrediction) {
-      // When a new prediction comes in, reset the translated text to the original.
-      setTranslatedCondition(currentPrediction.condition);
-      setTranslatedRecommendation(currentPrediction.recommendation);
-      setLanguage('en'); // Reset language to english for new prediction
+      // When a new prediction comes in, reset translation state.
+      setLanguage('en');
+      setTranslatedContent(null);
     }
   }, [currentPrediction]);
 
@@ -47,8 +49,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
     if (!currentPrediction) return;
 
     if (newLanguage === 'en') {
-      setTranslatedCondition(currentPrediction.condition);
-      setTranslatedRecommendation(currentPrediction.recommendation);
+      setTranslatedContent(null); // Reset to original by clearing translated content
       return;
     }
 
@@ -57,13 +58,10 @@ export function PredictionResult({ result }: PredictionResultProps) {
         getTranslatedText(currentPrediction.condition, newLanguage),
         getTranslatedText(currentPrediction.recommendation, newLanguage),
       ]).then(([condition, recommendation]) => {
-        setTranslatedCondition(condition);
-        setTranslatedRecommendation(recommendation);
+        setTranslatedContent({ condition, recommendation });
       }).catch(error => {
         console.error("Translation failed:", error);
-        // Fallback to original text on error
-        setTranslatedCondition(currentPrediction.condition);
-        setTranslatedRecommendation(currentPrediction.recommendation);
+        setTranslatedContent(null); // Fallback to original on error
       });
     });
   };
@@ -84,6 +82,9 @@ export function PredictionResult({ result }: PredictionResultProps) {
 
   const confidencePercent = Math.round(currentPrediction.confidence * 100);
   const isHealthy = currentPrediction.condition.toLowerCase() === 'healthy';
+
+  const displayedCondition = translatedContent?.condition ?? currentPrediction.condition;
+  const displayedRecommendation = translatedContent?.recommendation ?? currentPrediction.recommendation;
 
   return (
     <div className="space-y-8">
@@ -132,7 +133,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
                   ) : (
                     <AlertCircle className="h-5 w-5 text-destructive" />
                   )}
-                  <p className="text-lg font-semibold">{translatedCondition}</p>
+                  <p className="text-lg font-semibold">{displayedCondition}</p>
                 </div>
               )}
             </div>
@@ -185,7 +186,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardTitle>Doctor's Opinion</CardTitle>
         </CardHeader>
         <CardContent>
-          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{translatedRecommendation}</p>}
+          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{displayedRecommendation}</p>}
         </CardContent>
       </Card>
       
