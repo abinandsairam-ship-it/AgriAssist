@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { getPrediction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,9 +16,8 @@ import { CardDescription } from '@/components/ui/card';
 const initialState = undefined;
 
 export default function DashboardPage() {
-  const [state, formAction] = useFormState(getPrediction, initialState);
+  const [state, formAction, isPending] = useActionState(getPrediction, initialState);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isPending, setIsPending] = useState(false);
 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,8 +62,7 @@ export default function DashboardPage() {
     }
   }, [toast]);
   
-  const handleFormSubmit = async (formData: FormData) => {
-    setIsPending(true);
+  const handleFormSubmit = (formData: FormData) => {
     formAction(formData);
   }
   
@@ -102,7 +101,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (state) {
-      setIsPending(false);
       if (state?.error) {
         toast({
           title: 'Prediction Error',
