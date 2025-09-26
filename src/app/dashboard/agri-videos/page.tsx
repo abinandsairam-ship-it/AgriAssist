@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Heart,
+  ThumbsUp,
+  ThumbsDown,
   MessageSquare,
   PlayCircle,
   Send,
@@ -39,6 +40,11 @@ import {
 import { LANGUAGES } from '@/lib/constants';
 import { getTranslatedText } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 type Comment = {
   id: number;
@@ -52,6 +58,7 @@ type Video = {
   thumbnailUrl: string;
   videoUrl: string;
   likes: number;
+  dislikes: number;
   comments: Comment[];
   lang: string;
 };
@@ -63,6 +70,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/drip-irrigation/800/450',
     videoUrl: 'https://www.youtube.com/embed/QHXYs-2s5-s',
     likes: 125,
+    dislikes: 5,
     comments: [
       { id: 1, user: 'FarmerJoe', text: 'This was incredibly helpful!' },
       { id: 2, user: 'AgriPro', text: 'Great tips on pressure regulation.' },
@@ -75,6 +83,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/organic-pests/800/450',
     videoUrl: 'https://www.youtube.com/embed/s-r-p2m-s-s',
     likes: 340,
+    dislikes: 12,
     comments: [{ id: 1, user: 'EcoFarms', text: 'Neem oil is a lifesaver.' }],
     lang: 'en',
   },
@@ -84,6 +93,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/soil-health/800/450',
     videoUrl: 'https://www.youtube.com/embed/s-k-d-2-s',
     likes: 56,
+    dislikes: 2,
     comments: [],
     lang: 'en',
   },
@@ -93,6 +103,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/sinchai/800/450',
     videoUrl: 'https://www.youtube.com/embed/exam-ple-hi-1',
     likes: 210,
+    dislikes: 8,
     comments: [{ id: 1, user: 'KisanKumar', text: 'बहुत उपयोगी!' }],
     lang: 'hi',
   },
@@ -102,6 +113,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/jaivik-kheti/800/450',
     videoUrl: 'https://www.youtube.com/embed/exam-ple-hi-2',
     likes: 450,
+    dislikes: 25,
     comments: [
       { id: 1, user: 'Ramesh', text: 'नीम का तेल वाकई कमाल है।' },
       { id: 2, user: 'Sunita', text: 'धन्यवाद!' },
@@ -114,6 +126,7 @@ const initialVideoData: Video[] = [
     thumbnailUrl: 'https://picsum.photos/seed/pani-di-sambhal/800/450',
     videoUrl: 'https://www.youtube.com/embed/exam-ple-pa-1',
     likes: 180,
+    dislikes: 7,
     comments: [{ id: 1, user: 'JarnailSingh', text: 'ਬਹੁਤ ਵਧੀਆ ਜਾਣਕਾਰੀ।' }],
     lang: 'pa',
   },
@@ -213,6 +226,8 @@ export default function AgriVideosPage() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
   const [likedVideos, setLikedVideos] = useState<Set<number>>(new Set());
+  const [dislikedVideos, setDislikedVideos] = useState<Set<number>>(new Set());
+  const [openComments, setOpenComments] = useState<Set<number>>(new Set());
 
   const filteredVideos = useMemo(() => {
     return allVideos.filter(video => video.lang === selectedLanguage);
@@ -220,25 +235,70 @@ export default function AgriVideosPage() {
 
   const handleLike = (videoId: number) => {
     const newLikedVideos = new Set(likedVideos);
+    const newDislikedVideos = new Set(dislikedVideos);
     const isLiked = newLikedVideos.has(videoId);
+    const isDisliked = newDislikedVideos.has(videoId);
 
     setAllVideos(prevVideos =>
       prevVideos.map(video => {
         if (video.id === videoId) {
+          let newLikes = video.likes;
+          let newDislikes = video.dislikes;
+
           if (isLiked) {
             newLikedVideos.delete(videoId);
-            return { ...video, likes: video.likes - 1 };
+            newLikes--;
           } else {
             newLikedVideos.add(videoId);
-            return { ...video, likes: video.likes + 1 };
+            newLikes++;
+            if (isDisliked) {
+              newDislikedVideos.delete(videoId);
+              newDislikes--;
+            }
           }
+          return { ...video, likes: newLikes, dislikes: newDislikes };
         }
         return video;
       })
     );
 
     setLikedVideos(newLikedVideos);
+    setDislikedVideos(newDislikedVideos);
   };
+  
+  const handleDislike = (videoId: number) => {
+    const newLikedVideos = new Set(likedVideos);
+    const newDislikedVideos = new Set(dislikedVideos);
+    const isLiked = newLikedVideos.has(videoId);
+    const isDisliked = newDislikedVideos.has(videoId);
+
+    setAllVideos(prevVideos =>
+      prevVideos.map(video => {
+        if (video.id === videoId) {
+          let newLikes = video.likes;
+          let newDislikes = video.dislikes;
+
+          if (isDisliked) {
+            newDislikedVideos.delete(videoId);
+            newDislikes--;
+          } else {
+            newDislikedVideos.add(videoId);
+            newDislikes++;
+            if (isLiked) {
+              newLikedVideos.delete(videoId);
+              newLikes--;
+            }
+          }
+          return { ...video, likes: newLikes, dislikes: newDislikes };
+        }
+        return video;
+      })
+    );
+
+    setLikedVideos(newLikedVideos);
+    setDislikedVideos(newDislikedVideos);
+  };
+
 
   const handleCommentChange = (videoId: number, text: string) => {
     setNewComment(prev => ({ ...prev, [videoId]: text }));
@@ -266,6 +326,18 @@ export default function AgriVideosPage() {
     );
     // Clear the input field
     handleCommentChange(videoId, '');
+  };
+  
+  const toggleComments = (videoId: number) => {
+    setOpenComments(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(videoId)) {
+            newSet.delete(videoId);
+        } else {
+            newSet.add(videoId);
+        }
+        return newSet;
+    });
   };
 
   return (
@@ -304,6 +376,8 @@ export default function AgriVideosPage() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredVideos.map(video => {
           const isLiked = likedVideos.has(video.id);
+          const isDisliked = dislikedVideos.has(video.id);
+          const areCommentsOpen = openComments.has(video.id);
           return (
             <Card key={video.id} className="flex flex-col">
               <CardHeader className="p-0">
@@ -344,68 +418,85 @@ export default function AgriVideosPage() {
                     className="flex items-center gap-1"
                     onClick={() => handleLike(video.id)}
                   >
-                    <Heart
+                    <ThumbsUp
                       className={`h-4 w-4 ${
-                        isLiked ? 'text-red-500 fill-current' : ''
+                        isLiked ? 'text-primary fill-current' : ''
                       }`}
                     />{' '}
                     {video.likes}
                   </Button>
-                  <div className="flex items-center gap-1">
+                   <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleDislike(video.id)}
+                  >
+                    <ThumbsDown
+                      className={`h-4 w-4 ${
+                        isDisliked ? 'text-destructive fill-current' : ''
+                      }`}
+                    />{' '}
+                    {video.dislikes}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex items-center gap-1" onClick={() => toggleComments(video.id)}>
                     <MessageSquare className="h-4 w-4" />{' '}
                     {video.comments.length}
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 border-t flex flex-col items-start gap-4">
-                <h4 className="font-semibold text-sm">Comments</h4>
-                <div className="w-full space-y-3 max-h-32 overflow-y-auto">
-                  {video.comments.length > 0 ? (
-                    video.comments.map(comment => (
-                      <div
-                        key={comment.id}
-                        className="text-sm flex items-center justify-between gap-2"
-                      >
-                        <div>
-                          <span className="font-bold">{comment.user}:</span>{' '}
-                          <span className="text-muted-foreground">
-                            {comment.text}
-                          </span>
-                        </div>
-                        <TranslateCommentDialog comment={comment} />
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      No comments yet.
-                    </p>
-                  )}
-                </div>
-                <div className="w-full flex items-center gap-2">
-                  <Textarea
-                    placeholder="Add a comment..."
-                    rows={1}
-                    className="flex-grow resize-none"
-                    value={newComment[video.id] || ''}
-                    onChange={e =>
-                      handleCommentChange(video.id, e.target.value)
-                    }
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleCommentSubmit(video.id);
-                      }
-                    }}
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleCommentSubmit(video.id)}
-                  >
-                    <Send className="h-5 w-5" />
                   </Button>
                 </div>
-              </CardFooter>
+              </CardContent>
+              <Collapsible open={areCommentsOpen}>
+                <CollapsibleContent asChild>
+                  <CardFooter className="p-4 border-t flex flex-col items-start gap-4">
+                    <h4 className="font-semibold text-sm">Comments</h4>
+                    <div className="w-full space-y-3 max-h-32 overflow-y-auto">
+                      {video.comments.length > 0 ? (
+                        video.comments.map(comment => (
+                          <div
+                            key={comment.id}
+                            className="text-sm flex items-center justify-between gap-2"
+                          >
+                            <div>
+                              <span className="font-bold">{comment.user}:</span>{' '}
+                              <span className="text-muted-foreground">
+                                {comment.text}
+                              </span>
+                            </div>
+                            <TranslateCommentDialog comment={comment} />
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No comments yet.
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-full flex items-center gap-2">
+                      <Textarea
+                        placeholder="Add a comment..."
+                        rows={1}
+                        className="flex-grow resize-none"
+                        value={newComment[video.id] || ''}
+                        onChange={e =>
+                          handleCommentChange(video.id, e.target.value)
+                        }
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleCommentSubmit(video.id);
+                          }
+                        }}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleCommentSubmit(video.id)}
+                      >
+                        <Send className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           );
         })}
@@ -413,3 +504,5 @@ export default function AgriVideosPage() {
     </div>
   );
 }
+
+    
