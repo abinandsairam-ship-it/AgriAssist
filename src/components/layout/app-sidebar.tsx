@@ -76,16 +76,22 @@ export function AppSidebar() {
                     </SidebarMenuSubButton>
                   </li>
                   <li>
-                    <SidebarMenuSubButton asChild disabled>
-                      <Link href="#">
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/crop-suitability')}
+                    >
+                      <Link href="/dashboard/crop-suitability">
                         <Triangle />
                         <span>Crop Suitability</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
                   <li>
-                    <SidebarMenuSubButton asChild disabled>
-                      <Link href="#">
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/issue-reporter')}
+                    >
+                      <Link href="/dashboard/issue-reporter">
                         <Bug />
                         <span>Issue Reporter</span>
                       </Link>

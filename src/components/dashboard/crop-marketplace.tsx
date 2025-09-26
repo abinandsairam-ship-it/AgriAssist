@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -11,7 +12,7 @@ const crops = [
     name: "Organic Tomatoes",
     price: 2.50,
     unit: "per lb",
-    imageUrl: "https://picsum.photos/seed/tomatoes-market/400/300",
+    imageUrl: "https://picsum.photos/seed/tomatoes/400/300",
     seller: "Green Valley Farms"
   },
   {
@@ -19,7 +20,7 @@ const crops = [
     name: "Sweet Corn",
     price: 0.75,
     unit: "per ear",
-    imageUrl: "https://picsum.photos/seed/corn-market/400/300",
+    imageUrl: "https://picsum.photos/seed/sweet-corn/400/300",
     seller: "Sunshine Acres"
   },
   {
@@ -27,7 +28,7 @@ const crops = [
     name: "Fresh Strawberries",
     price: 4.00,
     unit: "per quart",
-    imageUrl: "https://picsum.photos/seed/strawberries-market/400/300",
+    imageUrl: "https://picsum.photos/seed/strawberries/400/300",
     seller: "Berry Best Farms"
   }
 ];

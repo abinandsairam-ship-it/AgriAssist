@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -22,12 +23,11 @@ const navLinks = [
   { href: '/#contact', label: 'Contact Us' },
 ];
 
-function DummyLanguageSwitcher() {
-  const [lang, setLang] = React.useState('en');
-  return <LanguageSwitcher selectedLanguage={lang} onLanguageChange={setLang} />;
-}
-
 export function AppHeader() {
+  const [lang, setLang] = React.useState('en');
+  const pathname = usePathname();
+  const showDashboardButton = !pathname.startsWith('/dashboard');
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -49,15 +49,21 @@ export function AppHeader() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2 ml-6">
-          <DummyLanguageSwitcher />
+          <LanguageSwitcher selectedLanguage={lang} onLanguageChange={setLang} />
           <ThemeToggle />
-          <Button asChild>
-            <Link href="/sign-in">Sign In</Link>
-          </Button>
+          {showDashboardButton ? (
+            <Button asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+             <Button asChild>
+                <Link href="/sign-in">Sign In</Link>
+             </Button>
+          )}
         </div>
 
         <div className="md:hidden flex items-center ml-2">
-          <DummyLanguageSwitcher />
+          <LanguageSwitcher selectedLanguage={lang} onLanguageChange={setLang} />
           <ThemeToggle />
           <Sheet>
             <SheetTrigger asChild>
@@ -81,9 +87,15 @@ export function AppHeader() {
                   ))}
                 </nav>
                 <div className="mt-auto p-4">
-                   <Button asChild className="w-full">
-                      <Link href="/sign-in">Sign In</Link>
-                    </Button>
+                   {showDashboardButton ? (
+                      <Button asChild className="w-full">
+                        <Link href="/dashboard">Dashboard</Link>
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full">
+                         <Link href="/sign-in">Sign In</Link>
+                      </Button>
+                    )}
                 </div>
               </div>
             </SheetContent>
