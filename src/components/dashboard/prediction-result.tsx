@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect, useTransition } from 'react';
 import Image from 'next/image';
@@ -25,61 +26,44 @@ export function PredictionResult({ result }: PredictionResultProps) {
   const [language, setLanguage] = useState('en');
   const [isTranslating, startTransition] = useTransition();
 
-  const [predictionText, setPredictionText] = useState<{
-    original: { condition: string; recommendation: string };
-    translated: { condition: string; recommendation: string };
-  } | null>(null);
+  const [translatedCondition, setTranslatedCondition] = useState('');
+  const [translatedRecommendation, setTranslatedRecommendation] = useState('');
 
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
     if (currentPrediction) {
-      const original = {
-        condition: currentPrediction.condition,
-        recommendation: currentPrediction.recommendation,
-      };
-      setPredictionText({
-        original: original,
-        translated: original, 
-      });
-      if (language !== 'en') {
-        handleLanguageChange(language);
-      }
+      // When a new prediction comes in, reset the translated text to the original.
+      setTranslatedCondition(currentPrediction.condition);
+      setTranslatedRecommendation(currentPrediction.recommendation);
+      setLanguage('en'); // Reset language to english for new prediction
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPrediction]);
 
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+    
+    if (!currentPrediction) return;
 
-    if (newLanguage === 'en' && predictionText) {
-      setPredictionText(prev => prev ? { ...prev, translated: prev.original } : null);
+    if (newLanguage === 'en') {
+      setTranslatedCondition(currentPrediction.condition);
+      setTranslatedRecommendation(currentPrediction.recommendation);
       return;
     }
-    
-    if(!predictionText) return;
 
     startTransition(() => {
       Promise.all([
-        getTranslatedText(predictionText.original.condition, newLanguage),
-        getTranslatedText(predictionText.original.recommendation, newLanguage),
-      ]).then(([translatedCondition, translatedRecommendation]) => {
-        setPredictionText(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            translated: {
-              condition: translatedCondition,
-              recommendation: translatedRecommendation,
-            },
-          };
-        });
+        getTranslatedText(currentPrediction.condition, newLanguage),
+        getTranslatedText(currentPrediction.recommendation, newLanguage),
+      ]).then(([condition, recommendation]) => {
+        setTranslatedCondition(condition);
+        setTranslatedRecommendation(recommendation);
       }).catch(error => {
         console.error("Translation failed:", error);
-        if (predictionText) {
-          setPredictionText(prev => prev ? { ...prev, translated: prev.original } : null);
-        }
+        // Fallback to original text on error
+        setTranslatedCondition(currentPrediction.condition);
+        setTranslatedRecommendation(currentPrediction.recommendation);
       });
     });
   };
@@ -148,7 +132,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
                   ) : (
                     <AlertCircle className="h-5 w-5 text-destructive" />
                   )}
-                  <p className="text-lg font-semibold">{predictionText?.translated.condition}</p>
+                  <p className="text-lg font-semibold">{translatedCondition}</p>
                 </div>
               )}
             </div>
@@ -201,7 +185,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardTitle>Doctor's Opinion</CardTitle>
         </CardHeader>
         <CardContent>
-          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{predictionText?.translated.recommendation}</p>}
+          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{translatedRecommendation}</p>}
         </CardContent>
       </Card>
       

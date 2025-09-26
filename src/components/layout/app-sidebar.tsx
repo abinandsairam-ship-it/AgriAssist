@@ -24,6 +24,7 @@ import {
   Settings,
   Leaf,
   History,
+  Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,7 +34,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -48,16 +48,11 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <Collapsible asChild>
+          <Collapsible asChild defaultOpen>
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton
-                  isActive={
-                    pathname === '/dashboard' ||
-                    pathname.startsWith('/dashboard/crop-detection') ||
-                    pathname.startsWith('/dashboard/crop-suitability') ||
-                    pathname.startsWith('/dashboard/issue-reporter')
-                  }
+                  isActive={pathname.startsWith('/dashboard')}
                   className="justify-between"
                 >
                   <div className="flex items-center gap-2">
@@ -96,60 +91,68 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
+                  <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/history')}
+                    >
+                      <Link href="/dashboard/history">
+                        <History />
+                        <span>History</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                   <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/supply-store')}
+                    >
+                      <Link href="/dashboard/supply-store">
+                        <ShoppingCart />
+                        <span>Agri-Supply Store</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                   <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/farmers-market')}
+                    >
+                      <Link href="/dashboard/farmers-market">
+                        <Store />
+                        <span>Farmer's Market</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                   <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/news')}
+                    >
+                      <Link href="/dashboard/news">
+                        <Newspaper />
+                        <span>Farming News</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
 
-          <SidebarMenuItem>
+           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith('/dashboard/history')}
-              tooltip="History"
+              isActive={pathname.startsWith('/dashboard/calendar')}
+              tooltip="Calendar & Reminders"
             >
-              <Link href="/dashboard/history">
-                <History />
-                <span>History</span>
+              <Link href="/dashboard/calendar">
+                <Calendar />
+                <span>Calendar</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/supply-store')}
-              tooltip="Agri-Supply Store"
-            >
-              <Link href="/dashboard/supply-store">
-                <ShoppingCart />
-                <span>Agri-Supply Store</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/farmers-market')}
-              tooltip="Farmer's Market"
-            >
-              <Link href="/dashboard/farmers-market">
-                <Store />
-                <span>Farmer's Market</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/news')}
-              tooltip="Farming News"
-            >
-              <Link href="/dashboard/news">
-                <Newspaper />
-                <span>Farming News</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
