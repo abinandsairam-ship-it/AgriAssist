@@ -7,13 +7,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
+import { Camera, ImageUp, Loader2, Bot, Scan, Video, ThumbsUp, MessageSquare } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
+import Image from 'next/image';
 
 const initialState = undefined;
+
+const relatedVideos = [
+  {
+    id: 1,
+    title: "Mastering Tomato Pruning for a Bigger Harvest",
+    thumbnailUrl: "https://picsum.photos/seed/video1/400/225",
+    videoUrl: "#",
+    likes: 12,
+    comments: 3,
+  },
+  {
+    id: 2,
+    title: "Organic Pest Control: Natural Solutions for Your Garden",
+    thumbnailUrl: "https://picsum.photos/seed/video2/400/225",
+    videoUrl: "#",
+    likes: 45,
+    comments: 8,
+  },
+  {
+    id: 3,
+    title: "How to Make Compost: The Complete Guide",
+    thumbnailUrl: "https://picsum.photos/seed/video3/400/225",
+    videoUrl: "#",
+    likes: 78,
+    comments: 12,
+  }
+]
 
 export default function DashboardPage() {
   const [state, formAction, isPending] = useActionState(getPrediction, initialState);
@@ -213,6 +241,44 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      
+      <Card className="mt-8">
+        <CardHeader className="flex flex-row items-center gap-4">
+          <Video className="h-6 w-6 text-primary" />
+          <CardTitle>Related Farming Videos</CardTitle>
+        </CardHeader>
+        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {relatedVideos.map((video) => (
+            <div key={video.id} className="space-y-2">
+              <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="group">
+                <div className="relative aspect-video rounded-lg overflow-hidden border">
+                  <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover transition-transform group-hover:scale-105" />
+                </div>
+                <h3 className="mt-2 text-sm font-semibold group-hover:text-primary leading-tight">{video.title}</h3>
+              </a>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <ThumbsUp className="h-4 w-4" />
+                  <span className="sr-only">Like</span>
+                </Button>
+                 <span>{video.likes}</span>
+                 <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <MessageSquare className="h-4 w-4" />
+                   <span className="sr-only">Comment</span>
+                </Button>
+                <span>{video.comments}</span>
+              </div>
+              <div className="space-y-2 pt-2">
+                <div className="flex items-start gap-2">
+                    <Input placeholder="Add a comment..." className="h-8 text-xs flex-1"/>
+                    <Button size="sm" className="h-8">Post</Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      
     </div>
   );
 }
