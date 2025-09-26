@@ -19,6 +19,8 @@ import {
   Send,
   Video,
   Languages,
+  Translate,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -26,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -35,8 +38,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LANGUAGES } from '@/lib/constants';
+import { getTranslatedText } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
-const videoData = [
+type Comment = {
+  id: number;
+  user: string;
+  text: string;
+};
+
+type Video = {
+  id: number;
+  title: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+  likes: number;
+  comments: Comment[];
+  lang: string;
+};
+
+const initialVideoData: Video[] = [
   {
     id: 1,
     title: 'Mastering Drip Irrigation for Higher Yields',
@@ -99,9 +120,99 @@ const videoData = [
   },
 ];
 
+function TranslateCommentDialog({ comment }: { comment: Comment }) {
+  const [targetLanguage, setTargetLanguage] = useState('en');
+  const [translatedText, setTranslatedText] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleTranslate = async () => {
+    if (!comment.text || !targetLanguage) return;
+    setIsTranslating(true);
+    setTranslatedText('');
+    try {
+      const result = await getTranslatedText(comment.text, targetLanguage);
+      setTranslatedText(result);
+    } catch (error) {
+      console.error('Translation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Translation Error',
+        description: 'Could not translate the comment.',
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-6 w-6">
+          <Translate className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Translate Comment</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">
+              Original Comment ({comment.user}):
+            </p>
+            <p className="border p-2 rounded-md bg-muted/50">
+              {comment.text}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={targetLanguage}
+              onValueChange={value => setTargetLanguage(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map(lang => (
+                  <SelectItem key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleTranslate} disabled={isTranslating}>
+              {isTranslating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Translate'
+              )}
+            </Button>
+          </div>
+          {translatedText && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Translated Text:
+              </p>
+              <p className="border p-2 rounded-md">{translatedText}</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AgriVideosPage() {
-  const [allVideos, setAllVideos] = useState(videoData);
+  const [allVideos, setAllVideos] = useState<Video[]>(initialVideoData);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
 
   const filteredVideos = useMemo(() => {
     return allVideos.filter(video => video.lang === selectedLanguage);
@@ -113,6 +224,34 @@ export default function AgriVideosPage() {
         video.id === videoId ? { ...video, likes: video.likes + 1 } : video
       )
     );
+  };
+
+  const handleCommentChange = (videoId: number, text: string) => {
+    setNewComment(prev => ({ ...prev, [videoId]: text }));
+  };
+
+  const handleCommentSubmit = (videoId: number) => {
+    const commentText = newComment[videoId];
+    if (!commentText || !commentText.trim()) return;
+
+    setAllVideos(prevVideos =>
+      prevVideos.map(video => {
+        if (video.id === videoId) {
+          const newCommentObj: Comment = {
+            id: Date.now(),
+            user: 'You', // In a real app, this would be the logged-in user
+            text: commentText,
+          };
+          return {
+            ...video,
+            comments: [...video.comments, newCommentObj],
+          };
+        }
+        return video;
+      })
+    );
+    // Clear the input field
+    handleCommentChange(videoId, '');
   };
 
   return (
@@ -202,11 +341,17 @@ export default function AgriVideosPage() {
               <div className="w-full space-y-3 max-h-32 overflow-y-auto">
                 {video.comments.length > 0 ? (
                   video.comments.map(comment => (
-                    <div key={comment.id} className="text-sm">
-                      <span className="font-bold">{comment.user}:</span>{' '}
-                      <span className="text-muted-foreground">
-                        {comment.text}
-                      </span>
+                    <div
+                      key={comment.id}
+                      className="text-sm flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <span className="font-bold">{comment.user}:</span>{' '}
+                        <span className="text-muted-foreground">
+                          {comment.text}
+                        </span>
+                      </div>
+                      <TranslateCommentDialog comment={comment} />
                     </div>
                   ))
                 ) : (
@@ -220,8 +365,22 @@ export default function AgriVideosPage() {
                   placeholder="Add a comment..."
                   rows={1}
                   className="flex-grow resize-none"
+                  value={newComment[video.id] || ''}
+                  onChange={e =>
+                    handleCommentChange(video.id, e.target.value)
+                  }
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleCommentSubmit(video.id);
+                    }
+                  }}
                 />
-                <Button size="icon" variant="ghost">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleCommentSubmit(video.id)}
+                >
                   <Send className="h-5 w-5" />
                 </Button>
               </div>
