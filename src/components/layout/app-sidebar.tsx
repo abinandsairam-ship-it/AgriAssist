@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -8,6 +9,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import {
   LayoutGrid,
@@ -24,6 +27,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -38,19 +48,60 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          <Collapsible asChild>
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton
+                  isActive={
+                    pathname === '/dashboard' ||
+                    pathname.startsWith('/dashboard/crop-detection') ||
+                    pathname.startsWith('/dashboard/crop-suitability') ||
+                    pathname.startsWith('/dashboard/issue-reporter')
+                  }
+                  className="justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <LayoutGrid />
+                    <span>Dashboard</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200 [&[data-state=open]]:rotate-90" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname === '/dashboard'}
+                    >
+                      <Link href="/dashboard">
+                        <ScanLine />
+                        <span>Crop Detection</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                  <li>
+                    <SidebarMenuSubButton asChild disabled>
+                      <Link href="#">
+                        <Triangle />
+                        <span>Crop Suitability</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                  <li>
+                    <SidebarMenuSubButton asChild disabled>
+                      <Link href="#">
+                        <Bug />
+                        <span>Issue Reporter</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
+
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/dashboard'}
-              tooltip="Dashboard"
-            >
-              <Link href="/dashboard">
-                <LayoutGrid />
-                <span>Dashboard</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={pathname.startsWith('/dashboard/history')}
@@ -62,44 +113,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/crop-detection')}
-              tooltip="Crop Detection"
-            >
-              <Link href="/dashboard">
-                <ScanLine />
-                <span>Crop Detection</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/crop-suitability')}
-              tooltip="Crop Suitability"
-              disabled
-            >
-              <Link href="#">
-                <Triangle />
-                <span>Crop Suitability</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/issue-reporter')}
-              tooltip="Issue Reporter"
-              disabled
-            >
-              <Link href="#">
-                <Bug />
-                <span>Issue Reporter</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
