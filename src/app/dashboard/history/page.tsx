@@ -1,3 +1,4 @@
+
 'use client';
 import {
   useMemoFirebase,
@@ -39,7 +40,7 @@ export default function HistoryPage() {
 
   const isLoading = isUserLoading || isHistoryLoading;
 
-  if (isLoading) {
+  if (isUserLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -86,17 +87,19 @@ export default function HistoryPage() {
         </p>
       </header>
 
-      {error && (
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      ) : error ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             <p>Error loading history: {error.message}</p>
           </CardContent>
         </Card>
-      )}
-
-      {history && history.length > 0 ? (
+      ) : history && history.length > 0 ? (
         <HistoryList history={history} />
-      ) : !isHistoryLoading ? (
+      ) : (
         <Card className="mt-8">
           <CardContent className="p-12 flex flex-col items-center text-center">
             <FileClock className="h-16 w-16 text-muted-foreground mb-4" />
@@ -106,7 +109,7 @@ export default function HistoryPage() {
             </p>
           </CardContent>
         </Card>
-      ) : null}
+      )}
     </div>
   );
 }
