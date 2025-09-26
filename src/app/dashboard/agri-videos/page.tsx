@@ -19,7 +19,6 @@ import {
   Send,
   Video,
   Languages,
-  Translate,
   Loader2,
 } from 'lucide-react';
 import {
@@ -150,7 +149,7 @@ function TranslateCommentDialog({ comment }: { comment: Comment }) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-6 w-6">
-          <Translate className="h-4 w-4" />
+          <Languages className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -213,17 +212,32 @@ export default function AgriVideosPage() {
   const [allVideos, setAllVideos] = useState<Video[]>(initialVideoData);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
+  const [likedVideos, setLikedVideos] = useState<Set<number>>(new Set());
 
   const filteredVideos = useMemo(() => {
     return allVideos.filter(video => video.lang === selectedLanguage);
   }, [allVideos, selectedLanguage]);
 
   const handleLike = (videoId: number) => {
+    const newLikedVideos = new Set(likedVideos);
+    const isLiked = newLikedVideos.has(videoId);
+
     setAllVideos(prevVideos =>
-      prevVideos.map(video =>
-        video.id === videoId ? { ...video, likes: video.likes + 1 } : video
-      )
+      prevVideos.map(video => {
+        if (video.id === videoId) {
+          if (isLiked) {
+            newLikedVideos.delete(videoId);
+            return { ...video, likes: video.likes - 1 };
+          } else {
+            newLikedVideos.add(videoId);
+            return { ...video, likes: video.likes + 1 };
+          }
+        }
+        return video;
+      })
     );
+
+    setLikedVideos(newLikedVideos);
   };
 
   const handleCommentChange = (videoId: number, text: string) => {
@@ -288,105 +302,113 @@ export default function AgriVideosPage() {
       </header>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredVideos.map(video => (
-          <Card key={video.id} className="flex flex-col">
-            <CardHeader className="p-0">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div className="relative aspect-video rounded-t-lg overflow-hidden cursor-pointer group">
-                    <Image
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <PlayCircle className="h-16 w-16 text-white/80 group-hover:text-white transition-colors" />
-                    </div>
-                  </div>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl p-0">
-                  <div className="aspect-video">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={video.videoUrl}
-                      title={video.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent className="p-4 flex-grow">
-              <CardTitle className="text-lg mb-2">{video.title}</CardTitle>
-              <div className="flex items-center gap-4 text-muted-foreground">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1"
-                  onClick={() => handleLike(video.id)}
-                >
-                  <Heart className="h-4 w-4" /> {video.likes}
-                </Button>
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4" />{' '}
-                  {video.comments.length}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="p-4 border-t flex flex-col items-start gap-4">
-              <h4 className="font-semibold text-sm">Comments</h4>
-              <div className="w-full space-y-3 max-h-32 overflow-y-auto">
-                {video.comments.length > 0 ? (
-                  video.comments.map(comment => (
-                    <div
-                      key={comment.id}
-                      className="text-sm flex items-center justify-between gap-2"
-                    >
-                      <div>
-                        <span className="font-bold">{comment.user}:</span>{' '}
-                        <span className="text-muted-foreground">
-                          {comment.text}
-                        </span>
+        {filteredVideos.map(video => {
+          const isLiked = likedVideos.has(video.id);
+          return (
+            <Card key={video.id} className="flex flex-col">
+              <CardHeader className="p-0">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="relative aspect-video rounded-t-lg overflow-hidden cursor-pointer group">
+                      <Image
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <PlayCircle className="h-16 w-16 text-white/80 group-hover:text-white transition-colors" />
                       </div>
-                      <TranslateCommentDialog comment={comment} />
                     </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    No comments yet.
-                  </p>
-                )}
-              </div>
-              <div className="w-full flex items-center gap-2">
-                <Textarea
-                  placeholder="Add a comment..."
-                  rows={1}
-                  className="flex-grow resize-none"
-                  value={newComment[video.id] || ''}
-                  onChange={e =>
-                    handleCommentChange(video.id, e.target.value)
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleCommentSubmit(video.id);
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl p-0">
+                    <div className="aspect-video">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src={video.videoUrl}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent className="p-4 flex-grow">
+                <CardTitle className="text-lg mb-2">{video.title}</CardTitle>
+                <div className="flex items-center gap-4 text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => handleLike(video.id)}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${
+                        isLiked ? 'text-red-500 fill-current' : ''
+                      }`}
+                    />{' '}
+                    {video.likes}
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    <MessageSquare className="h-4 w-4" />{' '}
+                    {video.comments.length}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="p-4 border-t flex flex-col items-start gap-4">
+                <h4 className="font-semibold text-sm">Comments</h4>
+                <div className="w-full space-y-3 max-h-32 overflow-y-auto">
+                  {video.comments.length > 0 ? (
+                    video.comments.map(comment => (
+                      <div
+                        key={comment.id}
+                        className="text-sm flex items-center justify-between gap-2"
+                      >
+                        <div>
+                          <span className="font-bold">{comment.user}:</span>{' '}
+                          <span className="text-muted-foreground">
+                            {comment.text}
+                          </span>
+                        </div>
+                        <TranslateCommentDialog comment={comment} />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      No comments yet.
+                    </p>
+                  )}
+                </div>
+                <div className="w-full flex items-center gap-2">
+                  <Textarea
+                    placeholder="Add a comment..."
+                    rows={1}
+                    className="flex-grow resize-none"
+                    value={newComment[video.id] || ''}
+                    onChange={e =>
+                      handleCommentChange(video.id, e.target.value)
                     }
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleCommentSubmit(video.id)}
-                >
-                  <Send className="h-5 w-5" />
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-        ))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleCommentSubmit(video.id);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleCommentSubmit(video.id)}
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
