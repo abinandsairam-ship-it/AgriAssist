@@ -44,7 +44,7 @@ export default function CalendarPage() {
               <form className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="reminder-title">Title</Label>
-                  <Input id="reminder-title" placeholder="e.g., Apply Fertilizer" />
+                  <Input id="reminder-title" placeholder="e.g., Apply Pesticides" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reminder-date">Date</Label>

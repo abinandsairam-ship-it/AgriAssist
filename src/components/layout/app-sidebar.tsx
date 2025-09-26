@@ -135,24 +135,21 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
+                  <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/calendar')}
+                    >
+                      <Link href="/dashboard/calendar">
+                        <Calendar />
+                        <span>Calendar</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
                 </SidebarMenuSub>
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
-
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/dashboard/calendar')}
-              tooltip="Calendar & Reminders"
-            >
-              <Link href="/dashboard/calendar">
-                <Calendar />
-                <span>Calendar</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
