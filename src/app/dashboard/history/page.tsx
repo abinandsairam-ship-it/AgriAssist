@@ -1,6 +1,5 @@
 'use client';
-import { useMemo } from 'react';
-import { useCollection, useFirestore } from '@/firebase';
+import { useMemoFirebase, useCollection, useFirestore } from '@/firebase';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileClock, Loader2 } from 'lucide-react';
@@ -9,7 +8,7 @@ import type { HistoryItem } from '@/lib/definitions';
 
 export default function HistoryPage() {
   const firestore = useFirestore();
-  const historyQuery = useMemo(
+  const historyQuery = useMemoFirebase(
     () =>
       firestore
         ? query(
