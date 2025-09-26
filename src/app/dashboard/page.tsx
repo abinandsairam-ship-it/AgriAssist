@@ -245,7 +245,7 @@ export default function DashboardPage() {
       <Card className="mt-8">
         <CardHeader className="flex flex-row items-center gap-4">
           <Video className="h-6 w-6 text-primary" />
-          <CardTitle>Related Farming Videos</CardTitle>
+          <CardTitle>Agri Videos</CardTitle>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {relatedVideos.map((video) => (

@@ -15,7 +15,7 @@ import { getTranslatedText } from '@/lib/actions';
 import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor, Video } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor } from 'lucide-react';
 import { Button } from '../ui/button';
 
 type PredictionResultProps = {
@@ -189,24 +189,6 @@ export function PredictionResult({ result }: PredictionResultProps) {
         </CardContent>
       </Card>
       
-      {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
-            <Video className="h-6 w-6 text-primary" />
-            <CardTitle>Related Farming Videos</CardTitle>
-          </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
-              <a key={video.videoUrl} href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="group">
-                <div className="relative aspect-video rounded-lg overflow-hidden border">
-                  <Image src={video.thumbnailUrl} alt={video.title} fill className="object-cover transition-transform group-hover:scale-105" />
-                </div>
-                <h3 className="mt-2 text-sm font-semibold group-hover:text-primary leading-tight">{video.title}</h3>
-              </a>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       {!isHealthy && currentPrediction.recommendedMedicines && currentPrediction.recommendedMedicines.length > 0 && (
         <Card>
@@ -235,5 +217,3 @@ export function PredictionResult({ result }: PredictionResultProps) {
     </div>
   );
 }
-
-    
