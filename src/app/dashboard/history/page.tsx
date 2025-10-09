@@ -18,19 +18,18 @@ export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
+  // IMPORTANT: The query is memoized and only constructed when firestore and user.uid are available.
   const historyQuery = useMemoFirebase(() => {
-    // Only construct the query if we have a firestore instance AND a user.
-    if (firestore && user?.uid) {
-      return query(
-        collection(firestore, 'crop_data'),
-        where('userId', '==', user.uid),
-        orderBy('timestamp', 'desc'),
-        limit(20)
-      );
+    if (!firestore || !user?.uid) {
+      return null;
     }
-    // Return null if we don't have what we need. useCollection will wait.
-    return null;
-  }, [firestore, user]);
+    return query(
+      collection(firestore, 'crop_data'),
+      where('userId', '==', user.uid),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+  }, [firestore, user?.uid]); // Dependency on user.uid ensures it re-runs when user logs in.
 
   const {
     data: history,
@@ -38,6 +37,7 @@ export default function HistoryPage() {
     error,
   } = useCollection<HistoryItem>(historyQuery);
 
+  // The page is loading if the user is loading, OR if we have a user but their history is still loading.
   const isLoading = isUserLoading || (user && isHistoryLoading);
 
   if (isUserLoading) {
@@ -94,7 +94,7 @@ export default function HistoryPage() {
       ) : error ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
-            <p>Error loading history: {error.message}</p>
+            <p>An error occurred while loading your history. Please try again later.</p>
           </CardContent>
         </Card>
       ) : history && history.length > 0 ? (

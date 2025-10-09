@@ -1,67 +1,67 @@
 /**
- * @fileoverview Firestore Security Rules for Agriassist.
+ * @fileOverview Firestore Security Rules for Agriassist.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for form entries. Only authenticated
- * users can create, update, or delete their own entries. Anonymous users can submit
- * forms but cannot modify them later.
+ * This ruleset prioritizes secure access to crop data submitted by users.
+ * It allows public read access to the crop_data collection but restricts write access to authenticated users only.
  *
  * Data Structure:
- * All form entries are stored in the top-level `/crop_data/{entryId}` collection.
- * Each document contains a `userId` field that links it to the user who created it.
+ * - All crop data entries are stored in the top-level `/crop_data/{entryId}` collection.
  *
  * Key Security Decisions:
- * - Public listing of entries is allowed.
- * - Only the owner of an entry can update or delete it.
- * - Anonymous users can create entries, but the `userId` field must be an empty string.
- * - Data validation is limited to authorization-critical fields for prototyping.
+ * - Public Read Access: Allows all users (including unauthenticated ones) to read the data in `/crop_data`.
+ * - Owner-Only Writes: Restricts the creation, update, and deletion of crop data entries to authenticated users. The `userId` field in each document must match the authenticated user's UID.
+ * - No User Listing: Listing users is not permitted.
  *
  * Denormalization for Authorization:
- * The `userId` field is denormalized directly onto the `/crop_data/{entryId}` document to
- * avoid needing to perform additional `get()` operations to check ownership.
+ * - Each document in the `/crop_data` collection has a `userId` field, which is used to enforce ownership for write operations. This avoids the need for additional `get()` calls to determine ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to the /crop_data/{entryId} collection.
+     * @description Allows public read access to crop data entries, but restricts write access to authenticated users only.
      * @path /crop_data/{entryId}
-     * @allow (get, list): Any user can read the crop data entries.
-     * @allow (create): An authenticated user can create a new entry with their userId. An anonymous user can create an entry with an empty userId.
-     * @allow (update, delete): Only the user who created the entry can update or delete it.
-     * @deny (create): An authenticated user cannot create an entry with a userId that does not match their own.
-     * @deny (update, delete): A user cannot update or delete an entry that does not exist.
-     * @principle Enforces document ownership for writes and public read access.
+     * @allow (get, list): Any user can read crop data entries.
+     * @allow (create): An authenticated user can create a new crop data entry if the userId matches their UID.
+     * @allow (update, delete): An authenticated user can update or delete a crop data entry if the userId matches their UID and the document exists.
+     * @deny (create): An unauthenticated user cannot create a crop data entry.
+     * @deny (update, delete): An unauthenticated user cannot update or delete a crop data entry. An authenticated user cannot update or delete another user's crop data entry.
+     * @principle Allows public data consumption with authenticated user-based ownership for modification.
      */
     match /crop_data/{entryId} {
-      // Allows anyone to read the data
       allow get, list: if true;
-
-      // Allows creating data if the user is signed in and the userId matches their auth.uid,
-      // or if the user is not signed in and the userId is an empty string.
-      allow create: if (isSignedIn() && request.resource.data.userId == request.auth.uid)
-                      || (!isSignedIn() && request.resource.data.userId == "");
-
-      // Allows updating and deleting data if the user is the owner and the document exists.
-      allow update, delete: if isExistingOwner(resource.data.userId);
-
-      // Blocks writing if any of the above conditions are not met.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && isExistingOwner(resource.data.userId);
     }
 
-    // Helper function to determine if a user is signed in.
+    // ---- Helper functions ----
+
+    /**
+     * @description Checks if the user is signed in.
+     * @returns {boolean} True if the user is signed in, false otherwise.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Helper function to determine if the user is the owner of the document.
+    /**
+     * @description Checks if the user is the owner of the document.
+     * @param {string} userId The user ID of the document owner.
+     * @returns {boolean} True if the user is the owner of the document, false otherwise.
+     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    // Helper function to determine if the user is the owner of an existing document.
+    /**
+     * @description Checks if the user is the existing owner of the document and the document exists.
+     * @param {string} userId The user ID of the document owner.
+     * @returns {boolean} True if the user is the owner of the document and the document exists, false otherwise.
+     */
     function isExistingOwner(userId) {
-      return isSignedIn() && isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
   }
 }
