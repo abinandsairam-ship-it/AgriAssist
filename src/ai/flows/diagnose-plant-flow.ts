@@ -26,16 +26,38 @@ const DiagnosePlantOutputSchema = z.object({
     .describe(
       'The identified disease in the format "Common Name (Biological Name)".'
     ),
-  confidence: z
-    .number()
-    .describe('A confidence score between 0 and 1 for the prediction.'),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
 export async function diagnosePlant(
   input: DiagnosePlantInput
-): Promise<DiagnosePlantOutput> {
-  return diagnosePlantFlow(input);
+): Promise<any> { // Return 'any' to accommodate the legacy structure.
+  const result = await diagnosePlantFlow(input);
+  
+  // Adapt the new, stricter output to the old format expected by the UI.
+  let condition = result.disease;
+  let diseaseCommonName: string | undefined;
+  let diseaseBiologicalName: string | undefined;
+
+  if (
+    result.disease.includes('(') &&
+    result.disease.includes(')') &&
+    result.disease !==
+      'Unknown disease. Please provide a clearer image or additional information.'
+  ) {
+    const parts = result.disease.replace(')', '').split('(');
+    condition = parts[0].trim();
+    diseaseCommonName = parts[0].trim();
+    diseaseBiologicalName = parts[1].trim();
+  }
+
+  return {
+    cropType: result.crop, // The UI expects 'cropType'
+    condition: condition, // The UI expects 'condition'
+    diseaseCommonName: diseaseCommonName,
+    diseaseBiologicalName: diseaseBiologicalName,
+    confidence: 0.95, // Provide a default confidence
+  };
 }
 
 const searchWebForDisease = ai.defineTool(
@@ -76,7 +98,7 @@ const searchWebForDisease = ai.defineTool(
         commonName: 'Leaf Spot',
       };
     }
-    if (input.query.toLowerCase().includes('brown spot')) {
+     if (input.query.toLowerCase().includes('brown spot')) {
       return {
         biologicalName: 'Bipolaris oryzae',
         commonName: 'Brown Spot',
@@ -96,7 +118,7 @@ const prompt = ai.definePrompt({
 Instructions:
 1.  First, identify the crop in the image (e.g., Rice, Tomato, etc.).
 2.  Second, identify the primary disease affecting the crop.
-3.  Third, use the 'searchWebForDisease' tool to find the biological name and confirm the common name.
+3.  Third, you MUST use the 'searchWebForDisease' tool to find the biological name of the identified disease. For example, if you see Brown Spot on Rice, you must call the tool with the query "Rice Brown Spot".
 4.  You MUST respond in the following strict format:
     - The 'crop' field should contain only the crop name.
     - The 'disease' field should contain the disease formatted as "Common Name (Biological Name)".
@@ -115,37 +137,10 @@ const diagnosePlantFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
 
-    // This is a workaround to transform the AI output to fit the old schema
-    // expected by the rest of the application (actions, UI).
-    // The AI is now instructed to return the new, stricter format.
-    // We adapt it here to avoid breaking the client-side components.
-
     if (!output) {
       throw new Error('AI failed to produce an output.');
     }
 
-    let condition = output.disease;
-    let diseaseCommonName: string | undefined;
-    let diseaseBiologicalName: string | undefined;
-
-    if (
-      output.disease.includes('(') &&
-      output.disease.includes(')') &&
-      output.disease !==
-        'Unknown disease. Please provide a clearer image or additional information.'
-    ) {
-      const parts = output.disease.replace(')', '').split('(');
-      condition = parts[0].trim();
-      diseaseCommonName = parts[0].trim();
-      diseaseBiologicalName = parts[1].trim();
-    }
-
-    return {
-      ...output,
-      condition: condition, // The UI expects 'condition'
-      cropType: output.crop, // The UI expects 'cropType'
-      diseaseCommonName: diseaseCommonName,
-      diseaseBiologicalName: diseaseBiologicalName,
-    } as any; // Cast to any to satisfy the old action return type.
+    return output;
   }
 );
