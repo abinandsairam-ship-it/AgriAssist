@@ -23,7 +23,6 @@ import {
   User,
   Settings,
   Leaf,
-  History,
   Calendar,
   Video,
   Activity,
@@ -107,17 +106,6 @@ export function AppSidebar() {
                       <Link href="/dashboard/issue-reporter">
                         <Bug />
                         <span>Issue Reporter</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </li>
-                  <li>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={pathname.startsWith('/dashboard/history')}
-                    >
-                      <Link href="/dashboard/history">
-                        <History />
-                        <span>Prediction History</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
