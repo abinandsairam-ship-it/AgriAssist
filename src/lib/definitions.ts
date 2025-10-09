@@ -23,11 +23,14 @@ export type Prediction = {
   confidence: number;
   imageUrl: string;
   timestamp: number;
+  diseaseCommonName?: string;
+  diseaseBiologicalName?: string;
   recommendation: string;
   recommendedMedicines: RecommendedMedicine[];
   relatedVideos: RelatedVideo[];
   weather: Weather;
   userId?: string;
+  newPrediction?: boolean;
 };
 
 export type HistoryItem = Pick<Prediction, 'cropType' | 'condition' | 'confidence' | 'imageUrl' | 'timestamp' | 'userId'> & {

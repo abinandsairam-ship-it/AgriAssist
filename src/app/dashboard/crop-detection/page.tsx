@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useActionState, use } from 'react';
+import { useActionState } from 'react';
 import { getPrediction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import type { Prediction } from '@/lib/definitions';
 
 const initialState = undefined;
 
@@ -27,8 +28,6 @@ export default function CropDetectionPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   
-  const formRef = useRef<HTMLFormElement>(null);
-
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -67,7 +66,9 @@ export default function CropDetectionPage() {
     }
   }, [toast]);
   
-  const handleFormSubmit = (formData: FormData) => {
+  const handleFormSubmit = (imageUri: string) => {
+    const formData = new FormData();
+    formData.append('imageUri', imageUri);
     if (user?.uid) {
       formData.append('userId', user.uid);
     }
@@ -81,9 +82,7 @@ export default function CropDetectionPage() {
       reader.onloadend = () => {
         const dataUri = reader.result as string;
         setImagePreview(dataUri);
-        const formData = new FormData();
-        formData.append('imageUri', dataUri);
-        handleFormSubmit(formData);
+        handleFormSubmit(dataUri);
       };
       reader.readAsDataURL(file);
     }
@@ -100,18 +99,16 @@ export default function CropDetectionPage() {
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         const dataUri = canvas.toDataURL('image/jpeg');
         setImagePreview(dataUri);
-        const formData = new FormData();
-        formData.append('imageUri', dataUri);
-        handleFormSubmit(formData);
+        handleFormSubmit(dataUri);
       }
     }
   }, [user, formAction]);
 
-  const currentPrediction = state && "cropType" in state ? state : null;
+  const currentPrediction = state && "cropType" in state ? (state as Prediction) : null;
 
   useEffect(() => {
     if (state) {
-      if (state?.error) {
+      if ('error' in state && state.error) {
         toast({
           title: 'Prediction Error',
           description: state.error,
@@ -127,8 +124,8 @@ export default function CropDetectionPage() {
         const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
         const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
         
-        // Destructure to only save what's needed for the history list
-        const { cropType, condition, confidence, timestamp, userId } = historyData;
+        // Destructure to only save what's needed
+        const { cropType, condition, confidence, timestamp, userId, diseaseCommonName, diseaseBiologicalName } = historyData;
 
         const dataToSave = {
           cropType,
@@ -137,6 +134,8 @@ export default function CropDetectionPage() {
           timestamp,
           userId,
           imageUrl: placeholderUrl, // Use a placeholder to save storage
+          diseaseCommonName,
+          diseaseBiologicalName,
         };
 
         const cropDataCollection = collection(firestore, 'crop_data');
@@ -161,10 +160,7 @@ export default function CropDetectionPage() {
             <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} onSubmit={(e) => {
-              e.preventDefault();
-              handleFormSubmit(new FormData(e.currentTarget));
-            }} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="image-upload">Live Camera Feed</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
@@ -213,7 +209,7 @@ export default function CropDetectionPage() {
                   <ImageUp className="mr-2 h-4 w-4" /> Upload
                 </Button>
               </div>
-            </form>
+            </div>
           </CardContent>
         </Card>
 

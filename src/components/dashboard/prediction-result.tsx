@@ -20,7 +20,7 @@ import { Button } from '../ui/button';
 import { useLanguage } from '@/context/language-context';
 
 type PredictionResultProps = {
-  result: (Prediction & { newPrediction: boolean }) | { error: string } | undefined;
+  result: Prediction | { error: string } | undefined;
 };
 
 type TranslatedContent = {
@@ -78,6 +78,33 @@ export function PredictionResult({ result }: PredictionResultProps) {
   const displayedCondition = translatedContent?.condition ?? currentPrediction.condition;
   const displayedRecommendation = translatedContent?.recommendation ?? currentPrediction.recommendation;
 
+  const renderDiseaseInfo = () => {
+    if (isHealthy) {
+      return (
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-primary" />
+          <p className="text-lg font-semibold">{displayedCondition}</p>
+        </div>
+      );
+    }
+    
+    if (currentPrediction.diseaseCommonName && currentPrediction.diseaseBiologicalName) {
+       return <p className="text-lg font-semibold">Disease: {currentPrediction.diseaseCommonName} ({currentPrediction.diseaseBiologicalName})</p>;
+    }
+
+    if (currentPrediction.diseaseCommonName) {
+      return <p className="text-lg font-semibold">Disease: {currentPrediction.diseaseCommonName}</p>;
+    }
+    
+    // Fallback for older data or if names are not available
+    return (
+      <div className="flex items-center gap-2">
+        <AlertCircle className="h-5 w-5 text-destructive" />
+        <p className="text-lg font-semibold">{displayedCondition}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <Card>
@@ -119,14 +146,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
               {isTranslating ? (
                 <Skeleton className="h-7 w-32" />
               ) : (
-                <div className="flex items-center gap-2">
-                  {isHealthy ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-destructive" />
-                  )}
-                  <p className="text-lg font-semibold">{displayedCondition}</p>
-                </div>
+                renderDiseaseInfo()
               )}
             </div>
             <div>
