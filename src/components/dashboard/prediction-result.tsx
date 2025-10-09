@@ -241,5 +241,3 @@ export function PredictionResult({ result }: PredictionResultProps) {
     
     return <AwaitingAnalysis />;
 }
-
-    
