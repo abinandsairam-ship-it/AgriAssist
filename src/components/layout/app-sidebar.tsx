@@ -25,7 +25,6 @@ import {
   Leaf,
   Calendar,
   Video,
-  History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -106,17 +105,6 @@ export function AppSidebar() {
                       <Link href="/dashboard/issue-reporter">
                         <Bug />
                         <span>Issue Reporter</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </li>
-                   <li>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={pathname.startsWith('/dashboard/history')}
-                    >
-                      <Link href="/dashboard/history">
-                        <History />
-                        <span>History</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>

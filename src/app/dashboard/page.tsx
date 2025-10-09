@@ -12,7 +12,6 @@ import {
   Triangle,
   Video,
   Bug,
-  History,
   ShoppingCart,
   Store,
   Newspaper,
@@ -45,12 +44,6 @@ const dashboardItems = [
     icon: Bug,
     title: 'Issue Reporter',
     description: 'Report issues or give feedback.',
-  },
-  {
-    href: '/dashboard/history',
-    icon: History,
-    title: 'Prediction History',
-    description: 'View past analysis records.',
   },
   {
     href: '/dashboard/supply-store',
