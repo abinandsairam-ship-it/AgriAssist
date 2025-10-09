@@ -46,43 +46,12 @@ export type GetDoctorsOpinionOutput = z.infer<
 export async function getDoctorsOpinion(
   input: GetDoctorsOpinionInput
 ): Promise<GetDoctorsOpinionOutput> {
-  const doctorsOpinionFlow = ai.defineFlow(
-    {
-      name: 'doctorsOpinionFlow',
-      inputSchema: GetDoctorsOpinionInputSchema,
-      outputSchema: GetDoctorsOpinionOutputSchema,
-    },
-    async ({ photoDataUri }) => {
-      const llmResponse = await ai.generate({
-        model: 'googleai/gemini-1.5-flash-latest',
-        prompt: [
-          {
-            text: `You are a world-renowned agronomist. Analyze the provided image and generate a JSON report with your "Doctor's Opinion". Your entire response must be a single JSON object that conforms to the output schema.
-            
-            Guidelines:
-            1.  **cropType**: Identify the crop with its scientific name.
-            2.  **condition**: Identify the disease with its scientific name. If healthy, state "Healthy".
-            3.  **confidence**: Provide your confidence in the diagnosis (0.0 to 1.0).
-            4.  **recommendation**: Write a detailed, actionable opinion. Start with "Doctor's Opinion:". Explain the symptoms, severity, and provide specific management steps (e.g., sanitation, fungicide/pesticide types, cultural practices).`,
-          },
-          { media: { url: photoDataUri } },
-        ],
-        output: {
-          format: 'json',
-          schema: GetDoctorsOpinionOutputSchema,
-        },
-        config: {
-          temperature: 0.3,
-        },
-      });
-
-      const output = llmResponse.output;
-      if (!output) {
-        throw new Error('AI failed to generate a valid response.');
-      }
-      return output;
-    }
-  );
-
-  return doctorsOpinionFlow(input);
+  // This is a no-op function to prevent build errors, but it is not used.
+  // The actual logic is now in the simulated AI in `src/lib/actions.ts`.
+  return {
+    cropType: '',
+    condition: '',
+    confidence: 0,
+    recommendation: '',
+  };
 }
