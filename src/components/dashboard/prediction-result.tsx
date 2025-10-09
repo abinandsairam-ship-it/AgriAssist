@@ -36,11 +36,10 @@ export function PredictionResult({ result }: PredictionResultProps) {
   const currentPrediction = result && "condition" in result ? result : null;
 
   useEffect(() => {
-    // When a new prediction comes in, or the language changes, handle translation.
     if (!currentPrediction) return;
 
     if (language === 'en') {
-      setTranslatedContent(null); // Reset to original by clearing translated content
+      setTranslatedContent(null);
       return;
     }
 
@@ -52,7 +51,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
         setTranslatedContent({ condition, recommendation });
       }).catch(error => {
         console.error("Translation failed:", error);
-        setTranslatedContent(null); // Fallback to original on error
+        setTranslatedContent(null);
       });
     });
   }, [currentPrediction, language]);
@@ -74,21 +73,11 @@ export function PredictionResult({ result }: PredictionResultProps) {
 
   const confidencePercent = Math.round(currentPrediction.confidence * 100);
   const isHealthy = currentPrediction.condition.toLowerCase() === 'healthy';
-
   const displayedCondition = translatedContent?.condition ?? currentPrediction.condition;
   const displayedRecommendation = translatedContent?.recommendation ?? currentPrediction.recommendation;
 
-  const renderDiseaseInfo = () => {
-    const Icon = isHealthy ? CheckCircle2 : AlertCircle;
-    const iconColor = isHealthy ? "text-primary" : "text-destructive";
-    
-    return (
-      <div className="flex items-center gap-2">
-        <Icon className={`h-5 w-5 ${iconColor}`} />
-        <p className="text-lg font-semibold">{displayedCondition}</p>
-      </div>
-    );
-  };
+  const ConditionIcon = isHealthy ? CheckCircle2 : AlertCircle;
+  const iconColor = isHealthy ? "text-primary" : "text-destructive";
 
   return (
     <div className="space-y-8">
@@ -131,7 +120,10 @@ export function PredictionResult({ result }: PredictionResultProps) {
               {isTranslating ? (
                 <Skeleton className="h-7 w-32" />
               ) : (
-                renderDiseaseInfo()
+                <div className="flex items-center gap-2">
+                  <ConditionIcon className={`h-5 w-5 ${iconColor}`} />
+                  <p className="text-lg font-semibold">{displayedCondition}</p>
+                </div>
               )}
             </div>
             <div>
