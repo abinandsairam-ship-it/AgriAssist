@@ -46,12 +46,46 @@ export type GetDoctorsOpinionOutput = z.infer<
 export async function getDoctorsOpinion(
   input: GetDoctorsOpinionInput
 ): Promise<GetDoctorsOpinionOutput> {
-  // This is a no-op function to prevent build errors, but it is not used.
-  // The actual logic is now in the simulated AI in `src/lib/actions.ts`.
-  return {
-    cropType: '',
-    condition: '',
-    confidence: 0,
-    recommendation: '',
-  };
+  return getDoctorsOpinionFlow(input);
 }
+
+
+const getDoctorsOpinionFlow = ai.defineFlow(
+  {
+    name: 'getDoctorsOpinionFlow',
+    inputSchema: GetDoctorsOpinionInputSchema,
+    outputSchema: GetDoctorsOpinionOutputSchema,
+  },
+  async ({ photoDataUri }) => {
+    const llmResponse = await ai.generate({
+      model: 'googleai/gemini-1.5-flash-latest',
+      prompt: [
+        {
+          text: `You are a world-renowned agronomist. Analyze the provided image and generate a JSON report. Your response must be only the raw JSON object, without any markdown formatting.
+
+The JSON object should conform to the following schema:
+{
+  "cropType": "The identified crop type, e.g., 'Tomato (Solanum lycopersicum)'.",
+  "condition": "The identified disease or health status, e.g., 'Late Blight (Phytophthora infestans)' or 'Healthy'.",
+  "confidence": "A number between 0.0 and 1.0 representing your confidence in the diagnosis.",
+  "recommendation": "A detailed expert opinion. Start with 'Doctor\\'s Opinion:'. Describe symptoms, severity, and actionable steps for management (sanitation, cultural practices, specific treatments)."
+}`,
+        },
+        { media: { url: photoDataUri } },
+      ],
+      output: {
+        format: 'json',
+        schema: GetDoctorsOpinionOutputSchema,
+      },
+      config: {
+        temperature: 0.3,
+      },
+    });
+
+    const output = llmResponse.output;
+    if (!output) {
+      throw new Error('AI failed to generate a valid response.');
+    }
+    return output;
+  }
+);
