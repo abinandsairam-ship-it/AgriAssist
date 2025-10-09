@@ -20,20 +20,12 @@ const DiagnosePlantInputSchema = z.object({
 export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
-  cropType: z.string().describe('The type of crop (e.g., Tomato, Corn).'),
-  condition: z
+  crop: z.string().describe('The identified name of the crop.'),
+  disease: z
     .string()
     .describe(
-      'The diagnosed condition of the crop (e.g., Healthy, Blight, Pest-attacked).'
+      'The identified disease in the format "Common Name (Biological Name)".'
     ),
-  diseaseCommonName: z
-    .string()
-    .optional()
-    .describe('The common name of the identified disease, if any.'),
-  diseaseBiologicalName: z
-    .string()
-    .optional()
-    .describe('The biological (Latin) name of the identified disease, if any.'),
   confidence: z
     .number()
     .describe('A confidence score between 0 and 1 for the prediction.'),
@@ -50,7 +42,7 @@ const searchWebForDisease = ai.defineTool(
   {
     name: 'searchWebForDisease',
     description:
-      'Searches agricultural and scientific websites for information on a crop disease to find its biological/Latin name.',
+      'Searches agricultural and scientific websites for information on a crop disease to find its biological/Latin name. Use this to verify your findings.',
     inputSchema: z.object({
       query: z
         .string()
@@ -59,19 +51,38 @@ const searchWebForDisease = ai.defineTool(
         ),
     }),
     outputSchema: z.object({
-      biologicalName: z.string().optional(),
+      biologicalName: z
+        .string()
+        .optional()
+        .describe('The biological (Latin) name of the disease.'),
+      commonName: z
+        .string()
+        .optional()
+        .describe('The common name of the disease.'),
     }),
   },
   async input => {
     console.log(`Simulating web search for: ${input.query}`);
     // In a real app, this would perform a web search. Here we mock it.
     if (input.query.toLowerCase().includes('late blight')) {
-      return {biologicalName: 'Phytophthora infestans'};
+      return {
+        biologicalName: 'Phytophthora infestans',
+        commonName: 'Late Blight',
+      };
     }
     if (input.query.toLowerCase().includes('leaf spot')) {
-      return {biologicalName: 'Cercospora beticola'};
+      return {
+        biologicalName: 'Cercospora beticola',
+        commonName: 'Leaf Spot',
+      };
     }
-    return {biologicalName: undefined};
+    if (input.query.toLowerCase().includes('brown spot')) {
+      return {
+        biologicalName: 'Bipolaris oryzae',
+        commonName: 'Brown Spot',
+      };
+    }
+    return {biologicalName: undefined, commonName: input.query};
   }
 );
 
@@ -80,16 +91,17 @@ const prompt = ai.definePrompt({
   tools: [searchWebForDisease],
   input: {schema: DiagnosePlantInputSchema},
   output: {schema: DiagnosePlantOutputSchema},
-  prompt: `You are an expert botanist. Analyze the provided image of a plant.
+  prompt: `You are an expert agronomist. Your task is to identify the crop and any disease from the provided image.
 
-1.  Identify the plant's crop type and its health condition.
-    - cropType: The common name of the plant (e.g., Tomato, Corn, Rose).
-    - condition: The general health status (e.g., Healthy, Late Blight, Aphid Infestation, Powdery Mildew).
-2.  If you identify a disease, use the searchWebForDisease tool to find its biological/Latin name.
-    - Set 'diseaseCommonName' to the common name of the disease.
-    - Set 'diseaseBiologicalName' to the result from the tool.
-    - If the plant is 'Healthy' or the condition is not a specific disease, do not use the tool and leave the disease fields blank.
-3.  Provide your confidence in this diagnosis, from 0.0 to 1.0.
+Instructions:
+1.  First, identify the crop in the image (e.g., Rice, Tomato, etc.).
+2.  Second, identify the primary disease affecting the crop.
+3.  Third, use the 'searchWebForDisease' tool to find the biological name and confirm the common name.
+4.  You MUST respond in the following strict format:
+    - The 'crop' field should contain only the crop name.
+    - The 'disease' field should contain the disease formatted as "Common Name (Biological Name)".
+    - If the plant is healthy, set the disease field to "Healthy".
+5.  If you cannot identify the crop or disease with high confidence, set the 'crop' to "Unknown" and the 'disease' field to "Unknown disease. Please provide a clearer image or additional information."
 
 Analyze this image: {{media url=photoDataUri}}`,
 });
@@ -102,6 +114,38 @@ const diagnosePlantFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+
+    // This is a workaround to transform the AI output to fit the old schema
+    // expected by the rest of the application (actions, UI).
+    // The AI is now instructed to return the new, stricter format.
+    // We adapt it here to avoid breaking the client-side components.
+
+    if (!output) {
+      throw new Error('AI failed to produce an output.');
+    }
+
+    let condition = output.disease;
+    let diseaseCommonName: string | undefined;
+    let diseaseBiologicalName: string | undefined;
+
+    if (
+      output.disease.includes('(') &&
+      output.disease.includes(')') &&
+      output.disease !==
+        'Unknown disease. Please provide a clearer image or additional information.'
+    ) {
+      const parts = output.disease.replace(')', '').split('(');
+      condition = parts[0].trim();
+      diseaseCommonName = parts[0].trim();
+      diseaseBiologicalName = parts[1].trim();
+    }
+
+    return {
+      ...output,
+      condition: condition, // The UI expects 'condition'
+      cropType: output.crop, // The UI expects 'cropType'
+      diseaseCommonName: diseaseCommonName,
+      diseaseBiologicalName: diseaseBiologicalName,
+    } as any; // Cast to any to satisfy the old action return type.
   }
 );
