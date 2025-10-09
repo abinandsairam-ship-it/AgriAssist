@@ -89,45 +89,7 @@ export default function ActivityHistoryPage() {
   const { data: history, isLoading: isHistoryLoading, error } =
     useCollection<ActivityHistoryItem>(historyQuery);
 
-  if (isUserLoading) {
-    return (
-       <div className="flex justify-center items-center h-full p-8">
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            <CardTitle className="mt-4">Loading History...</CardTitle>
-            <CardDescription>Resolving user session...</CardDescription>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-       <div className="container mx-auto p-4 md:p-8">
-         <header className="mb-8">
-          <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-            <Activity className="h-8 w-8" />
-            Activity History
-          </h1>
-          <p className="text-muted-foreground">
-            A log of recent actions performed in your account.
-          </p>
-        </header>
-        <Card className="mt-8">
-          <CardContent className="p-12 flex flex-col items-center text-center">
-            <Lock className="h-16 w-16 text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold">Please Sign In</h2>
-            <p className="text-muted-foreground mt-2 mb-6">
-              You need to be logged in to view your activity history.
-            </p>
-            <Button asChild>
-              <Link href="/sign-in">Sign In</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const isLoading = isUserLoading || (user && isHistoryLoading);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -140,17 +102,31 @@ export default function ActivityHistoryPage() {
           A log of recent actions performed in your account.
         </p>
       </header>
-       {isHistoryLoading ? (
-         <Card className="flex flex-col items-center justify-center p-12 text-center">
+      
+      {isLoading ? (
+        <Card className="flex flex-col items-center justify-center p-12 text-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
             <CardTitle className="mt-4">Loading Activity...</CardTitle>
             <CardDescription>Fetching your activity log from the cloud.</CardDescription>
+        </Card>
+      ) : !user ? (
+        <Card className="mt-8">
+          <CardContent className="p-12 flex flex-col items-center text-center">
+            <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-semibold">Please Sign In</h2>
+            <p className="text-muted-foreground mt-2 mb-6">
+              You need to be logged in to view your activity history.
+            </p>
+            <Button asChild>
+              <Link href="/sign-in">Sign In</Link>
+            </Button>
+          </CardContent>
         </Card>
       ) : error ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             <p>An error occurred while loading your activity. Please try again later.</p>
-             <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
+            <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
           </CardContent>
         </Card>
       ) : history && history.length > 0 ? (
