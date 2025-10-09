@@ -1,54 +1,14 @@
 
-"use server";
+'use server';
 import type { Prediction } from '@/lib/definitions';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
-
-// Mock data for instant and reliable responses
-const mockPredictions = [
-    {
-        cropType: 'Rice',
-        condition: 'Brown Spot (Bipolaris oryzae)',
-        recommendation: 'The leaf shows characteristic brown spots which are typical of brown spot disease. Treat with recommended fungicides and ensure proper field hygiene. Monitor for similar symptoms on neighboring plants.',
-        recommendedMedicines: [
-            { name: 'Propiconazole 25% EC', price: 15.50, url: '#' },
-            { name: 'Mancozeb 75% WP', price: 12.00, url: '#' }
-        ],
-        relatedVideos: [
-            { title: 'Managing Brown Spot in Rice', thumbnailUrl: 'https://picsum.photos/seed/rice-spot/120/90', videoUrl: '#' },
-        ]
-    },
-    {
-        cropType: 'Corn',
-        condition: 'Northern Leaf Blight (Exserohilum turcicum)',
-        recommendation: 'The long, cigar-shaped lesions are a classic sign of Northern Leaf Blight. Apply fungicides at the first sign of disease and consider resistant hybrids for future plantings. Good residue management can reduce inoculum.',
-        recommendedMedicines: [
-            { name: 'Azoxystrobin', price: 22.00, url: '#' },
-            { name: 'Pyraclostrobin', price: 25.00, url: '#' }
-        ],
-        relatedVideos: [
-            { title: 'How to Identify and Treat Northern Leaf Blight', thumbnailUrl: 'https://picsum.photos/seed/corn-blight/120/90', videoUrl: '#' },
-        ]
-    },
-    {
-        cropType: 'Potato',
-        condition: 'Late Blight (Phytophthora infestans)',
-        recommendation: 'This is Late Blight, a serious potato disease. Immediate fungicide application is critical. Destroy infected plants to prevent spread. Ensure good air circulation and avoid overhead irrigation.',
-        recommendedMedicines: [
-            { name: 'Chlorothalonil', price: 18.00, url: '#' },
-            { name: 'Metalaxyl-M', price: 28.50, url: '#' }
-        ],
-        relatedVideos: [
-            { title: 'Preventing Late Blight in Potatoes', thumbnailUrl: 'https://picsum.photos/seed/potato-blight/120/90', videoUrl: '#' },
-        ]
-    }
-];
-
+import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
 
 export async function getPrediction(
   prevState: any,
   formData: FormData
-): Promise<(Prediction & { newPrediction: boolean }) | { error: string }> {
+): Promise<Prediction | { error: string }> {
   const imageUri = formData.get('imageUri') as string;
   const userId = formData.get('userId') as string | undefined;
 
@@ -56,27 +16,47 @@ export async function getPrediction(
     return { error: 'Please upload or capture an image.' };
   }
 
-  // Use timestamp to cycle through mock predictions for more dynamic results
-  const mockResult = mockPredictions[Date.now() % mockPredictions.length];
+  try {
+    // Step 1: Get a simple description of the plant from the image.
+    const diagnosis = await diagnosePlant({ photoDataUri: imageUri });
 
-  const predictionResult: Prediction & { newPrediction: boolean } = {
-    ...mockResult,
-    confidence: 0.98, // High confidence for mock data
-    imageUrl: imageUri,
-    timestamp: Date.now(),
-    weather: {
-      location: 'Punjab, India',
-      temperature: '28°C',
-      condition: 'Cloudy',
-    },
-    newPrediction: true,
-    userId: userId,
-  };
-  
-  // Simulate network delay for realism, but keep it very short
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return predictionResult;
+    if (diagnosis.description.toLowerCase().includes('not a plant')) {
+        return { error: "The uploaded image does not appear to be a plant. Please try another image." };
+    }
+
+    // Step 2: Get the detailed "Doctor's Opinion" based on the description.
+    const opinion = await getDoctorsOpinion({ imageDescription: diagnosis.description });
+
+    const predictionResult: Prediction = {
+      cropType: opinion.crop,
+      condition: `${opinion.condition} (${opinion.conditionScientific})`,
+      recommendation: opinion.recommendation,
+      recommendedMedicines: opinion.recommendedMedicines,
+      relatedVideos: opinion.relatedVideos,
+      confidence: 0.98, // Confidence can be refined or passed from a model step if available
+      imageUrl: imageUri,
+      timestamp: Date.now(),
+      weather: {
+        location: 'Punjab, India',
+        temperature: '28°C',
+        condition: 'Cloudy',
+      },
+      userId: userId,
+    };
+    
+    return predictionResult;
+
+  } catch (e: any) {
+    console.error("AI analysis failed:", e);
+    // Check for specific error messages if the model provides them
+    if (e.message && e.message.includes('API key not valid')) {
+       return { error: "The AI model API key is not configured correctly. Please contact support." };
+    }
+     if (e.message && e.message.includes('rate limit')) {
+       return { error: "The AI model is currently busy. Please try again in a few moments." };
+    }
+    return { error: 'An unexpected error occurred during the AI analysis. The model may be temporarily offline.' };
+  }
 }
 
 
@@ -88,7 +68,6 @@ export async function getTranslatedText(
     return text;
   }
   try {
-    const { translatePredictionResults } = await import('@/ai/flows/translate-prediction-results');
     const result = await translatePredictionResults({ text, language });
     return result.translatedText;
   } catch (error) {
