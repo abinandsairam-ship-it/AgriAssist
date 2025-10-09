@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Entry": {
@@ -55,7 +56,7 @@
   "firestore": {
     "structure": [
       {
-        "path": "/entries/{entryId}",
+        "path": "/crop_data/{entryId}",
         "definition": {
           "entityName": "Entry",
           "schema": {
@@ -71,6 +72,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to store user-submitted form entries in a secure and scalable manner. The core collection is `entries`. Each document in this collection represents a single form submission, identified by a unique ID. The structure ensures authorization independence by storing all necessary data within each entry document. Since authentication is optional, the `userId` field can be empty. All documents within the `entries` collection share the same security requirements, which simplifies the security rules. This structure supports listing all entries, filtering by `userId` (for authenticated users) and enables QAPs since rules are not filters."
+    "reasoning": "The Firestore structure is designed to store user-submitted form entries in a secure and scalable manner. The core collection is `crop_data`. Each document in this collection represents a single form submission, identified by a unique ID. The structure ensures authorization independence by storing all necessary data within each entry document. Since authentication is optional, the `userId` field can be empty. All documents within the `crop_data` collection share the same security requirements, which simplifies the security rules. This structure supports listing all entries for a specific user, by filtering by `userId` (for authenticated users) and enables QAPs since rules are not filters."
   }
 }

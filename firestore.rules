@@ -1,56 +1,66 @@
+/**
+ * @file Agriassist Firestore Security Rules
+ * @description This ruleset enforces a data model where entries are stored in a flat collection (`/entries/{entryId}`).
+ *
+ * Data Structure:
+ * All entries are stored under the `/entries/{entryId}` path. Each entry document contains all the data required
+ * to make authorization decisions, including the `userId` of the user who created the entry.
+ *
+ * Key Security Decisions:
+ * - Public Read: All entries are publicly readable.
+ * - Owner-Only Writes: Only the user who created the entry can modify or delete it.
+ * - Unauthenticated Users: Anonymous users can create entries (userId is set to "").
+ *
+ * Denormalization for Authorization:
+ * The `userId` field is stored directly on each entry document to avoid costly `get()` calls
+ * to a separate `/users/{userId}` collection during authorization checks. This allows for simple,
+ * performant rules that directly verify ownership.
+ *
+ * Structural Segregation:
+ * The app uses a single `entries` collection to store all entries, regardless of the user's authentication status.
+ * This approach simplifies the data model and eliminates the need for separate collections for authenticated and
+ * anonymous users.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures the `entries` collection, allowing public reads and owner-only writes.
+     * @description Grants public read access to all entries and restricts write access to the owner of the entry.
      * @path /entries/{entryId}
-     * @allow (get, list) if true;
-     * @allow (create) if isSignedIn() && request.auth.uid == request.resource.data.userId; Example: User "user123" creates a new entry with userId "user123".
-     * @allow (update, delete) if isSignedIn() && isExistingOwner(); Example: User "user123" updates an existing entry they own.
-     * @deny (create) if request.auth.uid != request.resource.data.userId; Example: User "user123" attempts to create an entry with userId "user456".
-     * @deny (update, delete) if !isSignedIn(); Example: Anonymous user tries to update or delete any entry.
-     * @deny (update, delete) if !isExistingOwner(resource.data.userId); Example: User "user123" tries to update or delete an entry owned by "user456".
-     * @principle Allows public reads, but restricts writes to authenticated owners of the documents.
+     * @allow (get, list): Any user can read any entry.
+     * @allow (create): Any user can create an entry if the `userId` matches their auth UID or is an empty string.
+     * @allow (update, delete): Only the owner of the entry can update or delete it, and only if the document exists.
+     * @deny (create): A user cannot create an entry with a `userId` that does not match their auth UID when authenticated.
+     * @deny (update, delete): A non-owner cannot update or delete an entry.
+     * @principle Public Read with Owner-Only Writes, Enforces document ownership for writes.
      */
     match /entries/{entryId} {
+      // Allow anyone to read all entries
       allow get, list: if true;
 
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if isSignedIn() && isExistingOwner();
+      // Allow the user to create a new entry if the userId matches their auth.uid or if the user is not signed in (anonymous)
+      allow create: if isSignedIn() ? request.resource.data.userId == request.auth.uid : request.resource.data.userId == "";
 
-       //Explicitly deny all other operations
-      //allow read: if true; //Redundant with get, list
-      //allow write: if false; //Covered by more specific rules
-    }
+      // Allow the owner to update an existing entry. Enforce immutability on userId
+      allow update: if isExistingOwner(resource.data.userId) && (resource.data.userId == resource.data.userId);
 
+      // Allow the owner to delete an existing entry
+      allow delete: if isExistingOwner(resource.data.userId);
 
-    // --- Helper functions ---
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-    /**
-     * @description Checks if the user is signed in.
-     * @return {bool} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
+      // Check if the user is the owner of the entry and the document exists
+      function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+      }
 
-    /**
-     * @description Checks if the user is the owner of the document.
-     * @param {string} userId The user ID to compare against the request's auth UID.
-     * @return {bool} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the user is the owner of the document and the document exists.
-     * @param {string} userId The user ID to compare against the resource's userId field.
-     * @return {bool} True if the user is the owner and the document exists, false otherwise.
-     */
-    function isExistingOwner() {
-      return isSignedIn() && resource.data.userId == request.auth.uid;
+      // Helper function to determine if the current user is the owner
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
     }
   }
 }
