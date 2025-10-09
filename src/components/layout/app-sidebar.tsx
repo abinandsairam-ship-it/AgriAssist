@@ -116,7 +116,7 @@ export function AppSidebar() {
                     >
                       <Link href="/dashboard/history">
                         <History />
-                        <span>Prediction History</span>
+                        <span>History</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>

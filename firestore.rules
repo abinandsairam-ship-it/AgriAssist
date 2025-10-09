@@ -1,91 +1,70 @@
 /**
- * @fileoverview Firestore Security Rules for Agriassist.
+ * @file Firebase Security Rules for Agriassist Firestore database.
  *
- * Core Philosophy:
- * This ruleset prioritizes security and data ownership, ensuring users can only
- * access and modify their own data unless explicitly permitted. The rules
- * are designed to be flexible during the prototyping phase, focusing on
- * authorization and less on strict data validation.
+ * @corePhilosophy:
+ * This ruleset prioritizes secure data access based on user authentication.
+ * It focuses on protecting user-submitted form entries and maintaining an audit log of user actions.
  *
- * Data Structure:
- * The Firestore database contains two main collections: `crop_data` and `history`.
- * - `crop_data`: Stores user-submitted crop entries, with each document identified by `entryId`.
- * - `history`: Stores an audit log of user actions, with each event identified by `historyId`.
+ * @dataStructure:
+ * The database contains two top-level collections: `crop_data` and `history`.
+ * - `crop_data`: Stores user-submitted form entries with AI-generated predictions. Documents are identified by a unique entry ID.
+ * - `history`: Stores an audit log of user actions and events, with each event having a unique ID.
  *
- * Key Security Decisions:
- * - Users can only create, update, or delete their own crop entries.
- * - The `history` collection is write-only (append-only). Only authenticated users can add history records.
- * - Data validation is minimal in this prototyping phase, focusing on ownership and relational integrity.
+ * @keySecurityDecisions:
+ * - All write operations on `crop_data` and `history` require user authentication.
+ * - Public listing of `crop_data` is enabled.
+ * - Public listing of `history` is disabled to prevent unauthorized access to audit logs.
+ * - No role-based access control is implemented in this iteration.
  *
- * Denormalization for Authorization:
- * The `crop_data` document denormalizes the `userId` to enable simple ownership checks.
- *
- * Structural Segregation:
- * There is no separation of public and private data in this version. All data requires authentication.
+ * @denormalizationForAuthorization:
+ * The `crop_data` documents contain a `userId` field to associate the entry with the user who created it, enabling ownership-based access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user-submitted crop data entries.
+     * @description Defines access rules for the `crop_data` collection, allowing public read access and owner-only write access.
      * @path /crop_data/{entryId}
-     * @allow (create) - Authenticated user creates a new entry with their own user ID.
-     * @allow (update) - Authenticated user updates their existing entry.
-     * @allow (delete) - Authenticated user deletes their existing entry.
-     * @deny  (create) - Unauthenticated user attempts to create an entry.
-     * @deny  (update) - Authenticated user attempts to update an entry they don't own.
-     * @deny  (delete) - Authenticated user attempts to delete an entry they don't own.
-     * @principle Enforces document ownership for writes.
+     * @allow (get, list): Any user can read the data.
+     * @allow (create): Only authenticated users can create entries, and the `userId` field must match their authentication UID.
+     * @allow (update, delete): Only the user who created the entry can modify or delete it.
+     * @deny (create): Unauthenticated users cannot create entries.
+     * @deny (update, delete): Other authenticated users cannot modify or delete the entry.
+     * @principle Public Read with Owner-Only Writes: Allows public read access while restricting write access to the owner of the data.
      */
     match /crop_data/{entryId} {
-      // Helper function to check if the current user is the owner of the document.
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      // Helper function to check if the current user is the owner of the existing document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      // Allow anyone to read crop data.
       allow get, list: if true;
-
-      // Only allow authenticated users to create data, and enforce ownership on create.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-
-      // Only allow the owner to update the data.  Also, ensure userId cannot be changed.
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-
-      // Only allow the owner to delete the data.
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow update, delete: if isSignedIn() && isExistingOwner(resource.data.userId);
     }
 
     /**
-     * @description Controls access to the history log, only authenticated users can add to it.
+     * @description Defines access rules for the `history` collection, allowing only authenticated users to create history entries.
      * @path /history/{historyId}
-     * @allow (create) - Authenticated user can create a history entry.
-     * @deny  (get) - No one can read individual history entries.
-     * @deny  (list) - No one can list history entries.
-     * @deny  (update) - No one can update history entries.
-     * @deny  (delete) - No one can delete history entries.
-     * @principle Restricts writing history records to authenticated users only.
+     * @allow (create): Only authenticated users can create history entries.
+     * @deny (get, list, update, delete): No one can list history entries.
+     * @principle Ownership: Enforces authenticated access for creating history entries.
      */
     match /history/{historyId} {
-      // Only allow authenticated users to create history entries.
+      allow get: if false;
+      allow list: if false;
       allow create: if isSignedIn();
-
-      // No read access to history entries.
-      allow get, list: if false;
-
-      // No updates or deletes to history entries.
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if false;
     }
-  }
 
-  // Helper function to check if the user is signed in.
-  function isSignedIn() {
-    return request.auth != null;
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
   }
 }

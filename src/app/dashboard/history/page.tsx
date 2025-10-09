@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, History, Lock, FileClock, AlertCircle, Calendar, LogIn, FilePlus } from 'lucide-react';
+import { History, Lock, FileClock, AlertCircle, LogIn, FilePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { ActivityHistoryItem } from '@/lib/definitions';
@@ -92,6 +92,7 @@ function HistorySkeleton() {
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                 </div>
             </CardContent>
         </Card>
@@ -104,7 +105,8 @@ export default function HistoryPage() {
   const { user, isUserLoading } = useUser();
 
   const historyQuery = useMemoFirebase(() => {
-    if (!user?.uid) {
+    // This is the key fix: DO NOT create a query until the user is loaded and available.
+    if (isUserLoading || !user?.uid) {
       return null;
     }
     return query(
@@ -112,12 +114,12 @@ export default function HistoryPage() {
       where('userId', '==', user.uid),
       orderBy('timestamp', 'desc')
     );
-  }, [firestore, user?.uid]);
+  }, [firestore, user, isUserLoading]);
 
   const { data: history, isLoading: isHistoryLoading, error } =
     useCollection<ActivityHistoryItem>(historyQuery);
 
-  const isLoading = isUserLoading || (user && isHistoryLoading);
+  const isLoading = isUserLoading || isHistoryLoading;
 
   if (isUserLoading) {
       return (
