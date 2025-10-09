@@ -79,27 +79,12 @@ export function PredictionResult({ result }: PredictionResultProps) {
   const displayedRecommendation = translatedContent?.recommendation ?? currentPrediction.recommendation;
 
   const renderDiseaseInfo = () => {
-    if (isHealthy) {
-      return (
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-5 w-5 text-primary" />
-          <p className="text-lg font-semibold">{displayedCondition}</p>
-        </div>
-      );
-    }
+    const Icon = isHealthy ? CheckCircle2 : AlertCircle;
+    const iconColor = isHealthy ? "text-primary" : "text-destructive";
     
-    if (currentPrediction.diseaseCommonName && currentPrediction.diseaseBiologicalName) {
-       return <p className="text-lg font-semibold">Disease: {currentPrediction.diseaseCommonName} ({currentPrediction.diseaseBiologicalName})</p>;
-    }
-
-    if (currentPrediction.diseaseCommonName) {
-      return <p className="text-lg font-semibold">Disease: {currentPrediction.diseaseCommonName}</p>;
-    }
-    
-    // Fallback for older data or if names are not available
     return (
       <div className="flex items-center gap-2">
-        <AlertCircle className="h-5 w-5 text-destructive" />
+        <Icon className={`h-5 w-5 ${iconColor}`} />
         <p className="text-lg font-semibold">{displayedCondition}</p>
       </div>
     );
@@ -208,7 +193,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardHeader className="flex flex-row items-center gap-4">
             <Tractor className="h-6 w-6 text-primary" />
             <CardTitle>Recommended Medicines</CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent>
             <div className="space-y-4">
               {currentPrediction.recommendedMedicines.map((med: RecommendedMedicine) => (
@@ -233,7 +218,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardHeader className="flex flex-row items-center gap-4">
             <Tractor className="h-6 w-6 text-primary" />
             <CardTitle>Related Videos</CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent>
             <div className="space-y-4">
               {currentPrediction.relatedVideos.map((video: RelatedVideo) => (

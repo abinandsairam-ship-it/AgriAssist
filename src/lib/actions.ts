@@ -26,7 +26,7 @@ export async function getPrediction(
      return { error: "Could not analyze the plant image. Please try again." };
   }
 
-  const { cropType, condition, diseaseCommonName, diseaseBiologicalName } = diagnosis;
+  const { cropType, condition } = diagnosis;
   const confidence = (diagnosis as any).confidence || 0.95; // Use confidence if available, otherwise default
   const timestamp = Date.now();
 
@@ -49,8 +49,6 @@ export async function getPrediction(
     confidence,
     imageUrl, // Use the captured/uploaded image for immediate display
     timestamp,
-    diseaseCommonName,
-    diseaseBiologicalName,
     recommendation: doctorsOpinion.recommendation,
     recommendedMedicines: doctorsOpinion.recommendedMedicines,
     relatedVideos: doctorsOpinion.relatedVideos,

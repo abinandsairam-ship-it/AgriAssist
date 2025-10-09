@@ -23,8 +23,6 @@ export type Prediction = {
   confidence: number;
   imageUrl: string;
   timestamp: number;
-  diseaseCommonName?: string;
-  diseaseBiologicalName?: string;
   recommendation: string;
   recommendedMedicines: RecommendedMedicine[];
   relatedVideos: RelatedVideo[];

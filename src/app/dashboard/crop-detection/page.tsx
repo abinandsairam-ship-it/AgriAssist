@@ -12,8 +12,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 
 const initialState = undefined;
@@ -124,22 +124,13 @@ export default function CropDetectionPage() {
         const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
         const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
         
-        // Destructure to only save what's needed
-        const { cropType, condition, confidence, timestamp, userId, diseaseCommonName, diseaseBiologicalName } = historyData;
-
         const dataToSave = {
-          cropType,
-          condition,
-          confidence,
-          timestamp,
-          userId,
+          ...historyData,
           imageUrl: placeholderUrl, // Use a placeholder to save storage
-          diseaseCommonName,
-          diseaseBiologicalName,
         };
 
         const cropDataCollection = collection(firestore, 'crop_data');
-        addDocumentNonBlocking(cropDataCollection, dataToSave);
+        addDoc(cropDataCollection, dataToSave);
       }
     }
   }, [state, toast, user, firestore, currentPrediction]);
