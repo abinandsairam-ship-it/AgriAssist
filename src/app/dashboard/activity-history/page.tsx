@@ -74,7 +74,8 @@ export default function ActivityHistoryPage() {
   const { user, isUserLoading } = useUser();
 
   const historyQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) {
+    // CRITICAL: Do not create a query until the user state is fully resolved and a UID is available.
+    if (isUserLoading || !user?.uid) {
       return null;
     }
     return query(
