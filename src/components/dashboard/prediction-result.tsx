@@ -1,6 +1,6 @@
 
 "use client";
-import React, from 'react';
+import React from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -28,58 +28,56 @@ type TranslatedContent = {
   recommendation: string;
 };
 
-export function PredictionResult({ result }: PredictionResultProps) {
+// This is the placeholder component shown when no analysis has been run yet.
+function AwaitingAnalysis() {
+  return (
+    <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+      <CardHeader>
+        <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
+        <CardTitle>Awaiting Analysis</CardTitle>
+        <CardDescription>
+          Your crop analysis results will appear here.
+        </CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+// This is the main component that displays the full prediction result.
+function PredictionDisplay({ prediction }: { prediction: Prediction }) {
   const { language, setLanguage } = useLanguage();
   const [isTranslating, startTransition] = React.useTransition();
   const [translatedContent, setTranslatedContent] = React.useState<TranslatedContent | null>(null);
 
-  const currentPrediction = result && "condition" in result ? result : null;
-
   React.useEffect(() => {
-    if (!currentPrediction) return;
-
     if (language === 'en') {
-      setTranslatedContent(null);
+      setTranslatedContent(null); // Clear translations if switching back to English
       return;
     }
 
     startTransition(() => {
       Promise.all([
-        getTranslatedText(currentPrediction.condition, language),
-        getTranslatedText(currentPrediction.recommendation, language),
+        getTranslatedText(prediction.condition, language),
+        getTranslatedText(prediction.recommendation, language),
       ]).then(([condition, recommendation]) => {
         setTranslatedContent({ condition, recommendation });
       }).catch(error => {
         console.error("Translation failed:", error);
-        setTranslatedContent(null);
+        setTranslatedContent(null); // Fallback to English on error
       });
     });
-  }, [currentPrediction, language]);
-
-  if (!currentPrediction) {
-    return (
-      <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
-        <CardHeader>
-          <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
-          <CardTitle>Awaiting Analysis</CardTitle>
-          <CardDescription>
-            Your crop analysis results will appear here.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  const confidencePercent = Math.round(currentPrediction.confidence * 100);
-  const isHealthy = currentPrediction.condition.toLowerCase() === 'healthy';
-  const displayedCondition = translatedContent?.condition ?? currentPrediction.condition;
-  const displayedRecommendation = translatedContent?.recommendation ?? currentPrediction.recommendation;
+  }, [prediction, language]);
+  
+  const confidencePercent = Math.round(prediction.confidence * 100);
+  const isHealthy = prediction.condition.toLowerCase() === 'healthy';
+  const displayedCondition = translatedContent?.condition ?? prediction.condition;
+  const displayedRecommendation = translatedContent?.recommendation ?? prediction.recommendation;
 
   const ConditionIcon = isHealthy ? CheckCircle2 : AlertCircle;
   const iconColor = isHealthy ? "text-primary" : "text-destructive";
 
   return (
-    <div className="space-y-8">
+     <div className="space-y-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -99,7 +97,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
         <CardContent className="grid md:grid-cols-2 gap-6">
           <div className="relative aspect-video rounded-lg overflow-hidden border">
             <Image
-              src={currentPrediction.imageUrl}
+              src={prediction.imageUrl}
               alt="Analyzed crop"
               fill
               className="object-cover"
@@ -110,7 +108,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Crop Type
               </h3>
-              <p className="text-lg font-semibold">{currentPrediction.cropType}</p>
+              <p className="text-lg font-semibold">{prediction.cropType}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
@@ -139,13 +137,13 @@ export function PredictionResult({ result }: PredictionResultProps) {
         <CardFooter>
           <p className="text-xs text-muted-foreground">
             Prediction from{' '}
-            {new Date(currentPrediction.timestamp).toLocaleString()}. This is a
+            {new Date(prediction.timestamp).toLocaleString()}. This is a
             demo prediction.
           </p>
         </CardFooter>
       </Card>
       
-      {currentPrediction.weather && (
+      {prediction.weather && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <CloudSun className="h-6 w-6 text-primary" />
@@ -154,15 +152,15 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardContent className="flex justify-around">
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Location</p>
-              <p className="font-bold text-lg">{currentPrediction.weather.location}</p>
+              <p className="font-bold text-lg">{prediction.weather.location}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Temperature</p>
-              <p className="font-bold text-lg">{currentPrediction.weather.temperature}</p>
+              <p className="font-bold text-lg">{prediction.weather.temperature}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Condition</p>
-              <p className="font-bold text-lg">{currentPrediction.weather.condition}</p>
+              <p className="font-bold text-lg">{prediction.weather.condition}</p>
             </div>
           </CardContent>
         </Card>
@@ -178,8 +176,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
         </CardContent>
       </Card>
       
-
-      {!isHealthy && currentPrediction.recommendedMedicines && currentPrediction.recommendedMedicines.length > 0 && (
+      {!isHealthy && prediction.recommendedMedicines && prediction.recommendedMedicines.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <ShoppingCart className="h-6 w-6 text-primary" />
@@ -187,7 +184,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           </Header>
           <CardContent>
             <div className="space-y-4">
-              {currentPrediction.recommendedMedicines.map((med: RecommendedMedicine) => (
+              {prediction.recommendedMedicines.map((med: RecommendedMedicine) => (
                 <div key={med.name} className="flex justify-between items-center p-2 rounded-md border">
                   <div>
                     <p className="font-semibold">{med.name}</p>
@@ -204,7 +201,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
         </Card>
       )}
 
-      {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
+      {prediction.relatedVideos && prediction.relatedVideos.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <Video className="h-6 w-6 text-primary" />
@@ -212,7 +209,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           </Header>
           <CardContent>
             <div className="space-y-4">
-              {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
+              {prediction.relatedVideos.map((video: RelatedVideo) => (
                 <div key={video.title} className="flex items-center gap-4 p-2 rounded-md border">
                   <Image src={video.thumbnailUrl} alt={video.title} width={120} height={90} className="rounded-md object-cover" />
                   <div>
@@ -226,4 +223,17 @@ export function PredictionResult({ result }: PredictionResultProps) {
       )}
     </div>
   );
+}
+
+// The main export component that decides which view to show.
+export function PredictionResult({ result }: PredictionResultProps) {
+  // Determine if the result is a valid prediction.
+  const currentPrediction = result && "condition" in result ? result : null;
+
+  if (currentPrediction) {
+    return <PredictionDisplay prediction={currentPrediction} />;
+  }
+  
+  // If there's no valid prediction, show the placeholder.
+  return <AwaitingAnalysis />;
 }
