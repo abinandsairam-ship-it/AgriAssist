@@ -5,68 +5,6 @@ import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
 import type { Prediction } from '@/lib/definitions';
 
-// Mock function to simulate a fast AI response
-async function getMockPrediction(imageUri: string, userId?: string): Promise<Prediction & { newPrediction: boolean }> {
-  // This simulates the AI analysis and returns a realistic result instantly.
-  await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200)); // Simulate 200-700ms delay
-
-  const mockDiagnosis = {
-    cropType: 'Tomato',
-    condition: 'Late Blight',
-  };
-
-  const mockDoctorsOpinion = {
-    recommendation: "Your tomato plant is showing classic signs of Late Blight, a common fungal disease. To manage this, immediately remove and destroy infected leaves. Improve air circulation around the plants and apply a copper-based fungicide every 7-10 days, following the product's instructions carefully. Avoid overhead watering to keep foliage dry.",
-    recommendedMedicines: [
-      {
-        name: 'Copper Fungicide',
-        price: 25.99,
-        url: 'https://example.com/product/copper-fungicide',
-      },
-      {
-        name: 'Bonide Fung-onil',
-        price: 19.50,
-        url: 'https://example.com/product/bonide-fung-onil',
-      },
-    ],
-    relatedVideos: [
-       {
-        title: "How to Identify and Treat Late Blight on Tomatoes",
-        thumbnailUrl: "https://picsum.photos/seed/video1/400/225",
-        videoUrl: "https://youtube.com/watch?v=example1"
-      },
-       {
-        title: "Organic Sprays for Tomato Diseases",
-        thumbnailUrl: "https://picsum.photos/seed/video2/400/225",
-        videoUrl: "https://youtube.com/watch?v=example2"
-      },
-       {
-        title: "Pruning Tomatoes for Better Airflow",
-        thumbnailUrl: "https://picsum.photos/seed/video3/400/225",
-        videoUrl: "https://youtube.com/watch?v=example3"
-      }
-    ],
-  };
-
-  return {
-    cropType: mockDiagnosis.cropType,
-    condition: mockDiagnosis.condition,
-    confidence: 0.98,
-    imageUrl: imageUri, // Use the uploaded image
-    timestamp: Date.now(),
-    recommendation: mockDoctorsOpinion.recommendation,
-    recommendedMedicines: mockDoctorsOpinion.recommendedMedicines,
-    relatedVideos: mockDoctorsOpinion.relatedVideos,
-    weather: {
-      location: 'Punjab, India',
-      temperature: '32°C',
-      condition: 'Sunny',
-    },
-    newPrediction: true,
-    userId,
-  };
-}
-
 
 export async function getPrediction(
   prevState: any,
@@ -79,13 +17,48 @@ export async function getPrediction(
     return { error: 'Please upload or capture an image.' };
   }
 
-  // Use the mock function for instant, reliable results.
   try {
-    const predictionResult = await getMockPrediction(imageUri, userId);
+    const diagnosis = await diagnosePlant({ photoDataUri: imageUri });
+
+    if (
+      !diagnosis ||
+      !diagnosis.cropType ||
+      !diagnosis.condition ||
+      diagnosis.cropType.toLowerCase() === 'unknown'
+    ) {
+      return {
+        error:
+          diagnosis.condition ||
+          'Could not identify the crop. Please try a clearer image.',
+      };
+    }
+
+    const doctorsOpinion = await getDoctorsOpinion({
+      crop: diagnosis.cropType,
+      condition: diagnosis.condition,
+    });
+
+    const predictionResult: Prediction & { newPrediction: boolean } = {
+      cropType: diagnosis.cropType,
+      condition: diagnosis.condition,
+      confidence: 0.98, // Confidence from diagnosis is not available, using placeholder
+      imageUrl: imageUri,
+      timestamp: Date.now(),
+      recommendation: doctorsOpinion.recommendation,
+      recommendedMedicines: doctorsOpinion.recommendedMedicines,
+      relatedVideos: doctorsOpinion.relatedVideos,
+      weather: {
+        location: 'Punjab, India',
+        temperature: '32°C',
+        condition: 'Sunny',
+      },
+      newPrediction: true,
+      userId: userId,
+    };
     return predictionResult;
   } catch (e: any) {
-    console.error("Error in mock prediction flow:", e.message);
-    return { error: "An unexpected error occurred during analysis. Please try again." };
+    console.error("Error in getPrediction flow:", e.message);
+    return { error: "An unexpected error occurred during AI analysis. The AI model may be offline." };
   }
 }
 
