@@ -48,7 +48,7 @@ const diagnosePlantFlow = ai.defineFlow(
 - Do not use JSON, just return the single sentence.`},
         {media: { url: photoDataUri } },
       ],
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-1.5-pro-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
       },

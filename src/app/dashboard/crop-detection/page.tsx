@@ -15,7 +15,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 3000;
 
 export default function CropDetectionPage() {
   const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
@@ -85,7 +86,7 @@ export default function CropDetectionPage() {
           setRetryCount(currentTry);
           setTimeout(() => {
             handleFormSubmit(imageUri, currentTry + 1);
-          }, 5000); // Retry after 5 seconds
+          }, RETRY_DELAY); // Retry after delay
         } else {
           setFinalError(`AI analysis failed after ${MAX_RETRIES} attempts. The AI model server might be down or experiencing high traffic. Please try again later. Error: ${result.error}`);
           setPredictionResult(undefined);
@@ -284,5 +285,3 @@ export default function CropDetectionPage() {
     </div>
   );
 }
-
-    
