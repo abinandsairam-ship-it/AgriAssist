@@ -62,7 +62,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
       <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
         <CardHeader>
           <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
-          <CardTitle>Awaiting Prediction</CardTitle>
+          <CardTitle>Awaiting Analysis</CardTitle>
           <CardDescription>
             Your crop analysis results will appear here.
           </CardDescription>
