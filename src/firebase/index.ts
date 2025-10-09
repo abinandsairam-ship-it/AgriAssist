@@ -1,25 +1,12 @@
-
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-
-// A singleton to hold the initialized Firebase services.
-let firebaseServices: {
-  firebaseApp: FirebaseApp;
-  auth: Auth;
-  firestore: Firestore;
-} | null = null;
-
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (firebaseServices) {
-    return firebaseServices;
-  }
-  
   if (!getApps().length) {
     // Important! initializeApp() is called without any arguments because Firebase App Hosting
     // integrates with the initializeApp() function to provide the environment variables needed to
@@ -37,14 +24,12 @@ export function initializeFirebase() {
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
-    
-    firebaseServices = getSdks(firebaseApp);
-    return firebaseServices;
+
+    return getSdks(firebaseApp);
   }
 
   // If already initialized, return the SDKs with the already initialized App
-  firebaseServices = getSdks(getApp());
-  return firebaseServices;
+  return getSdks(getApp());
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
@@ -63,5 +48,3 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-
-

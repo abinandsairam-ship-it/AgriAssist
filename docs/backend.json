@@ -1,112 +1,48 @@
 {
   "entities": {
-    "User": {
+    "Entry": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
+      "title": "Entry",
       "type": "object",
-      "description": "Represents a user of the AgriAssist application.",
+      "description": "Represents a user-submitted form entry in Agriassist, stored in Firestore.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "User's full name."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "User's phone number."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp of when the user account was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "email",
-        "phoneNumber",
-        "createdAt"
-      ]
-    },
-    "CropImage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CropImage",
-      "type": "object",
-      "description": "Represents a crop image uploaded by a user for analysis.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CropImage entity."
+          "description": "Unique identifier for the Entry entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N CropImage)"
+          "description": "User ID of the user who submitted the form.  Empty string if user is not authenticated."
         },
-        "imageUrl": {
+        "timestamp": {
           "type": "string",
-          "description": "URL of the uploaded crop image."
-        },
-        "uploadTimestamp": {
-          "type": "string",
-          "description": "Timestamp of when the image was uploaded.",
+          "description": "Timestamp of when the form was submitted.",
           "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "imageUrl",
-        "uploadTimestamp"
-      ]
-    },
-    "Prediction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Prediction",
-      "type": "object",
-      "description": "Represents the AI prediction results for a crop image.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Prediction entity."
-        },
-        "cropImageId": {
-          "type": "string",
-          "description": "Reference to CropImage. (Relationship: CropImage 1:1 Prediction)"
         },
         "cropType": {
           "type": "string",
-          "description": "The predicted type of crop."
+          "description": "The predicted crop type from the AI model."
         },
-        "healthStatus": {
+        "conditionDisease": {
           "type": "string",
-          "description": "The predicted health status or disease condition of the crop (e.g., healthy, pest-attacked, nutrient deficiency)."
+          "description": "The predicted health status or disease condition of the crop."
         },
-        "confidenceLevel": {
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the uploaded crop image stored in Cloud Storage.",
+          "format": "uri"
+        },
+        "predictionConfidence": {
           "type": "number",
-          "description": "The confidence level of the prediction (0-1)."
-        },
-        "predictionTimestamp": {
-          "type": "string",
-          "description": "Timestamp of when the prediction was made.",
-          "format": "date-time"
+          "description": "The prediction confidence level of the AI model (0-1)."
         }
       },
       "required": [
         "id",
-        "cropImageId",
+        "timestamp",
         "cropType",
-        "healthStatus",
-        "confidenceLevel",
-        "predictionTimestamp"
+        "conditionDisease",
+        "imageUrl"
       ]
     }
   },
@@ -119,66 +55,22 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/entries/{entryId}",
         "definition": {
-          "entityName": "User",
+          "entityName": "Entry",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/backend/entities/Entry"
           },
-          "description": "Stores user profiles. User data is private and accessible only to the user themselves.",
+          "description": "Stores user-submitted form entries. Includes fields for userId, timestamp, cropType, conditionDisease, imageUrl, and predictionConfidence.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/cropImages/{cropImageId}",
-        "definition": {
-          "entityName": "CropImage",
-          "schema": {
-            "$ref": "#/backend/entities/CropImage"
-          },
-          "description": "Stores crop images uploaded by users. Accessible only to the owning user, as determined by the path.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who uploaded the image."
-            },
-            {
-              "name": "cropImageId",
-              "description": "The unique identifier for the crop image."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/cropImages/{cropImageId}/predictions/{predictionId}",
-        "definition": {
-          "entityName": "Prediction",
-          "schema": {
-            "$ref": "#/backend/entities/Prediction"
-          },
-          "description": "Stores AI prediction results for crop images. Accessible only to the owning user, as determined by the path.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user who owns the crop image."
-            },
-            {
-              "name": "cropImageId",
-              "description": "The unique identifier for the crop image."
-            },
-            {
-              "name": "predictionId",
-              "description": "The unique identifier for the prediction."
+              "name": "entryId",
+              "description": "Unique identifier for the entry document."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to securely store user data, crop images, and AI predictions while ensuring authorization independence and efficient querying. The structure follows the principle of path-based ownership for private user data and avoids using `get()` calls in security rules by denormalizing authorization data.\n\nUsers are stored in a root-level collection `/users/{userId}`. Each user can upload multiple crop images, which are stored in a subcollection `/users/{userId}/cropImages/{cropImageId}`. AI prediction results for each crop image are stored in a subcollection `/users/{userId}/cropImages/{cropImageId}/predictions/{predictionId}`.\n\nThis design achieves Authorization Independence by utilizing path-based ownership. Security rules can easily verify if the requesting user (`request.auth.uid`) matches the `userId` segment in the path, granting them access to their own data without needing to read parent documents. It also supports the required QAPs since list operations are easily secured by checking the `userId` in the path against `request.auth.uid`.\n\nDenormalization is not explicitly needed in this structure because the path itself provides the authorization context (the user ID). If collaborative features were added (e.g., allowing other users to view or comment on crop images), then a membership map (`members: {uid: role}`) would be added to the `cropImages` document and denormalized to the `predictions` documents to maintain Authorization Independence."
+    "reasoning": "The Firestore structure is designed to store user-submitted form entries in a secure and scalable manner. The core collection is `entries`. Each document in this collection represents a single form submission, identified by a unique ID. The structure ensures authorization independence by storing all necessary data within each entry document. Since authentication is optional, the `userId` field can be empty. All documents within the `entries` collection share the same security requirements, which simplifies the security rules. This structure supports listing all entries, filtering by `userId` (for authenticated users) and enables QAPs since rules are not filters."
   }
 }
