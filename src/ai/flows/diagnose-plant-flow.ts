@@ -42,21 +42,21 @@ const diagnosePlantFlow = ai.defineFlow(
   },
   async ({ photoDataUri }) => {
     const llmResponse = await ai.generate({
-      prompt: `You are an expert agronomist. Analyze the provided image.
+      prompt: [
+        {text: `You are an expert agronomist. Analyze the provided image.
 - Identify the crop. If you cannot, set cropType to "Unknown".
 - Identify the health condition.
 - If a disease or pest is present, provide its common name for 'condition' and its scientific name for 'conditionScientific'. Example: condition: "Late Blight", conditionScientific: "Phytophthora infestans".
 - If the plant is healthy, set 'condition' to "Healthy" and 'conditionScientific' to "N/A".
 - If you are uncertain, provide the most likely possibility and explain the uncertainty in the condition field.
 
-Return only the JSON object. Do not add any other text or explanations.`,
+Return only the JSON object. Do not add any other text or explanations.`},
+        {media: { url: photoDataUri } },
+      ],
       model: 'gemini-1.5-pro-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
       },
-      context: [
-        { media: { url: photoDataUri } }
-      ]
     });
 
     return llmResponse.output()!;
