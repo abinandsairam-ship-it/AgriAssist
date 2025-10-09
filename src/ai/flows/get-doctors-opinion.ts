@@ -37,7 +37,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
     .describe(
       'A detailed "Doctor\'s Opinion" report including a brief disease description, symptoms, a treatment plan, and prevention advice. Formatted in natural language for farmers.'
     ),
-  confidence: z.number().min(0).max(1).describe('The confidence level of the prediction, from 0 to 1.'),
+  confidence: z.number().min(0).max(1).describe('The confidence level of the diagnosis, from 0 to 1.'),
 });
 export type GetDoctorsOpinionOutput = z.infer<
   typeof GetDoctorsOpinionOutputSchema
@@ -77,7 +77,7 @@ Generate only the JSON object based on the provided schemas. Do not include any 
       },
     });
 
-    const output = llmResponse.output();
+    const output = llmResponse.output;
     if (!output) {
       throw new Error("AI failed to generate a valid analysis.");
     }
