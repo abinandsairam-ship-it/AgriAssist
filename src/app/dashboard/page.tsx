@@ -1,6 +1,3 @@
-
-'use client';
-
 import {
   Card,
   CardContent,
@@ -54,7 +51,7 @@ const dashboardItems = [
   {
     href: '/dashboard/farmers-market',
     icon: Store,
-    title: 'Farmer\'s Market',
+    title: "Farmer's Market",
     description: 'Buy fresh crops from local farmers.',
   },
   {
