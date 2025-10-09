@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useEffect, useTransition } from 'react';
+import React, from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -30,12 +30,12 @@ type TranslatedContent = {
 
 export function PredictionResult({ result }: PredictionResultProps) {
   const { language, setLanguage } = useLanguage();
-  const [isTranslating, startTransition] = useTransition();
-  const [translatedContent, setTranslatedContent] = useState<TranslatedContent | null>(null);
+  const [isTranslating, startTransition] = React.useTransition();
+  const [translatedContent, setTranslatedContent] = React.useState<TranslatedContent | null>(null);
 
   const currentPrediction = result && "condition" in result ? result : null;
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!currentPrediction) return;
 
     if (language === 'en') {
