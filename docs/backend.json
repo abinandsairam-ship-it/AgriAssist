@@ -49,7 +49,7 @@
     ]
   },
   "firestore": {
-    "/crop_data/{entry}": {
+    "/crop_data/{entryId}": {
       "schema": {
         "$ref": "#/entities/Entry"
       },
