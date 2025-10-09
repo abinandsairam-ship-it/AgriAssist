@@ -1,3 +1,4 @@
+
 'use server';
 import type { Prediction } from '@/lib/definitions';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
@@ -58,9 +59,8 @@ export async function getPrediction(
     // Simulate AI processing time
     await new Promise(resolve => setTimeout(resolve, 1200));
 
-    // Cycle through mock predictions based on the current time
-    const now = Date.now();
-    const predictionIndex = Math.floor(now / 10000) % mockPredictions.length;
+    // Select a random prediction from the mock data
+    const predictionIndex = Math.floor(Math.random() * mockPredictions.length);
     const selectedPrediction = mockPredictions[predictionIndex];
     
     if (!selectedPrediction) {
@@ -69,7 +69,7 @@ export async function getPrediction(
 
     const predictionResult: Prediction = {
       ...selectedPrediction,
-      timestamp: now,
+      timestamp: Date.now(),
       imageUrl: imageUri, // Use the actual uploaded image for the preview
       userId: userId,
     };
