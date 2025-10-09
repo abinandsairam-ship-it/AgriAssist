@@ -8,7 +8,7 @@ import {
   useUser,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -18,61 +18,58 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, History, Lock, FileClock, AlertCircle } from 'lucide-react';
+import { Loader2, History, Lock, FileClock, AlertCircle, Calendar, LogIn, FilePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import type { HistoryItem } from '@/lib/definitions';
+import type { ActivityHistoryItem } from '@/lib/definitions';
 import { formatDistanceToNow } from 'date-fns';
-import Image from 'next/image';
-import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
-function HistoryList({ history }: { history: HistoryItem[] }) {
-  const getBadgeVariant = (condition: string) => {
-    return condition.toLowerCase() === 'healthy' ? 'default' : 'destructive';
-  };
 
+function getActionIcon(actionType: string) {
+  switch (actionType) {
+    case 'login':
+      return <LogIn className="h-4 w-4 text-blue-500" />;
+    case 'create_prediction':
+      return <FilePlus className="h-4 w-4 text-green-500" />;
+    default:
+      return <History className="h-4 w-4" />;
+  }
+}
+
+function HistoryList({ history }: { history: ActivityHistoryItem[] }) {
   return (
     <Card>
         <CardHeader>
-            <CardTitle>Your Prediction History</CardTitle>
-            <CardDescription>A log of all your past crop analyses.</CardDescription>
+            <CardTitle>Your Activity History</CardTitle>
+            <CardDescription>A log of your recent actions in the app.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Image</TableHead>
-                        <TableHead>Crop</TableHead>
-                        <TableHead>Condition</TableHead>
-                        <TableHead>Confidence</TableHead>
+                        <TableHead className='w-[100px]'>Action</TableHead>
+                        <TableHead>Details</TableHead>
                         <TableHead className="text-right">When</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
                     {history.map(item => (
                         <TableRow key={item.id}>
-                        <TableCell>
-                            <Image src={item.imageUrl} alt={item.cropType} width={80} height={60} className="rounded-md object-cover" />
-                        </TableCell>
-                        <TableCell className="font-medium">{item.cropType}</TableCell>
-                        <TableCell>
-                            <Badge variant={getBadgeVariant(item.condition)}>
-                                {item.condition}
+                          <TableCell>
+                            <Badge variant="outline" className="flex items-center gap-2 capitalize">
+                              {getActionIcon(item.actionType)}
+                              {item.actionType.replace('_', ' ')}
                             </Badge>
-                        </TableCell>
-                         <TableCell>
-                            <div className="flex items-center gap-2">
-                                <Progress value={item.confidence * 100} className="w-24 h-2" />
-                                <span className="text-muted-foreground text-xs">{Math.round(item.confidence * 100)}%</span>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                            {formatDistanceToNow(new Date(item.timestamp), {
-                            addSuffix: true,
-                            })}
-                        </TableCell>
+                          </TableCell>
+                          <TableCell className="font-medium text-muted-foreground">{item.details}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                              {formatDistanceToNow(new Date(item.timestamp), {
+                              addSuffix: true,
+                              })}
+                          </TableCell>
                         </TableRow>
                     ))}
                     </TableBody>
@@ -83,65 +80,96 @@ function HistoryList({ history }: { history: HistoryItem[] }) {
   );
 }
 
+function HistorySkeleton() {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+
 export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
   const historyQuery = useMemoFirebase(() => {
-    if (isUserLoading || !user?.uid) {
+    if (!user?.uid) {
       return null;
     }
     return query(
-      collection(firestore, 'crop_data'),
+      collection(firestore, 'history'),
       where('userId', '==', user.uid),
-      orderBy('timestamp', 'desc'),
-      limit(50)
+      orderBy('timestamp', 'desc')
     );
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user?.uid]);
 
   const { data: history, isLoading: isHistoryLoading, error } =
-    useCollection<HistoryItem>(historyQuery);
+    useCollection<ActivityHistoryItem>(historyQuery);
 
   const isLoading = isUserLoading || (user && isHistoryLoading);
+
+  if (isUserLoading) {
+      return (
+          <div className="container mx-auto p-4 md:p-8">
+               <header className="mb-8">
+                <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+                    <History className="h-8 w-8" />
+                    Your History
+                </h1>
+                <p className="text-muted-foreground">
+                    Review your past activity.
+                </p>
+            </header>
+            <HistorySkeleton />
+          </div>
+      )
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
           <History className="h-8 w-8" />
-          Prediction History
+          Your History
         </h1>
         <p className="text-muted-foreground">
-          Review your past crop analysis results.
+          Review your past activity.
         </p>
       </header>
       
-      {isLoading ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            <CardTitle className="mt-4">Loading History...</CardTitle>
-            <CardDescription>Fetching your analysis log from the cloud.</CardDescription>
-        </Card>
-      ) : !user ? (
+      {!user ? (
         <Card className="mt-8">
           <CardContent className="p-12 flex flex-col items-center text-center">
             <Lock className="h-16 w-16 text-muted-foreground mb-4" />
             <h2 className="text-2xl font-semibold">Please Sign In</h2>
             <p className="text-muted-foreground mt-2 mb-6">
-              You need to be logged in to view your prediction history.
+              You need to be logged in to view your activity history.
             </p>
             <Button asChild>
               <Link href="/sign-in">Sign In</Link>
             </Button>
           </CardContent>
         </Card>
+      ) : isLoading ? (
+        <HistorySkeleton />
       ) : error ? (
          <Card className="mt-8">
             <CardContent className="p-12 flex flex-col items-center text-center">
                 <AlertCircle className="h-16 w-16 text-destructive mb-4" />
                 <h2 className="text-2xl font-semibold">An Error Occurred</h2>
                 <p className="text-muted-foreground mt-2">
-                    Could not load your prediction history. Please try again later.
+                    Could not load your history. Please try again later.
                 </p>
                 <p className="text-xs text-muted-foreground mt-4">{error.message}</p>
             </CardContent>
@@ -152,9 +180,9 @@ export default function HistoryPage() {
         <Card className="mt-8">
           <CardContent className="p-12 flex flex-col items-center text-center">
             <FileClock className="h-16 w-16 text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold">No Predictions Found</h2>
+            <h2 className="text-2xl font-semibold">No Activity Found</h2>
             <p className="text-muted-foreground mt-2">
-              Analyze a crop in the Crop Detection page to see your history here.
+              Your actions will be recorded here as you use the app.
             </p>
           </CardContent>
         </Card>
