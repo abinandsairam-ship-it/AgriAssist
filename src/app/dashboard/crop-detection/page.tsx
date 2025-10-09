@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
+import { Camera, ImageUp, Loader2, Bot, Scan, AlertTriangle } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
@@ -15,11 +15,16 @@ import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 
+const MAX_RETRIES = 2;
+
 export default function CropDetectionPage() {
   const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
   const [isPending, startTransition] = useTransition();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [finalError, setFinalError] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,7 +68,9 @@ export default function CropDetectionPage() {
     }
   }, [toast]);
   
-  const handleFormSubmit = (imageUri: string) => {
+  const handleFormSubmit = useCallback((imageUri: string, currentTry = 1) => {
+    setPredictionResult(undefined);
+    setFinalError(null);
     const formData = new FormData();
     formData.append('imageUri', imageUri);
     if (user?.uid) {
@@ -72,16 +79,22 @@ export default function CropDetectionPage() {
     
     startTransition(async () => {
       const result = await getPrediction(null, formData);
-      setPredictionResult(result);
-
+      
       if (result && 'error' in result && result.error) {
-        toast({
-          title: 'Prediction Error',
-          description: result.error,
-          variant: 'destructive',
-        });
+        if (currentTry < MAX_RETRIES) {
+          setRetryCount(currentTry);
+          setTimeout(() => {
+            handleFormSubmit(imageUri, currentTry + 1);
+          }, 5000); // Retry after 5 seconds
+        } else {
+          setFinalError(`AI analysis failed after ${MAX_RETRIES} attempts. The AI model server might be down or experiencing high traffic. Please try again later. Error: ${result.error}`);
+          setPredictionResult(undefined);
+          setRetryCount(0);
+        }
       } else if (result && 'cropType' in result) {
-        const currentPrediction = result as Prediction;
+        setPredictionResult(result);
+        setRetryCount(0);
+        setFinalError(null);
         toast({
           title: 'Success!',
           description: 'Your crop has been analyzed.',
@@ -89,12 +102,13 @@ export default function CropDetectionPage() {
 
         if (user && firestore) {
           // Save to Firestore
+          const currentPrediction = result as Prediction;
           const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
           const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
           
           const dataToSave = {
             ...historyData,
-            imageUrl: placeholderUrl, // Use a placeholder to save storage
+            imageUrl: placeholderUrl,
           };
 
           const cropDataCollection = collection(firestore, 'crop_data');
@@ -102,7 +116,7 @@ export default function CropDetectionPage() {
         }
       }
     });
-  }
+  }, [user, firestore, toast]);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -131,9 +145,68 @@ export default function CropDetectionPage() {
         handleFormSubmit(dataUri);
       }
     }
-  }, [user]);
+  }, [handleFormSubmit]);
 
   const currentPrediction = predictionResult && "cropType" in predictionResult ? (predictionResult as Prediction) : null;
+
+  const renderAnalysisState = () => {
+    if (isPending) {
+      if (retryCount > 0) {
+        return (
+          <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+            <CardHeader>
+              <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
+              <CardTitle>Analysis Failed, Retrying...</CardTitle>
+              <CardDescription>
+                Attempting to reconnect to the AI model. Please wait. (Attempt {retryCount + 1})
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        );
+      }
+      return (
+        <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+          <CardHeader>
+            <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
+            <CardTitle>Analyzing...</CardTitle>
+            <CardDescription>
+              Our AI is inspecting your image. Please wait a moment.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    if (finalError) {
+      return (
+        <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed border-destructive">
+          <CardHeader>
+            <AlertTriangle className="mx-auto h-16 w-16 text-destructive" />
+            <CardTitle>Analysis Failed</CardTitle>
+            <CardDescription className="text-destructive">
+              {finalError}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    if (currentPrediction) {
+      return <PredictionResult result={currentPrediction} />;
+    }
+
+    return (
+      <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
+          <CardHeader>
+            <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
+            <CardTitle>Awaiting Analysis</CardTitle>
+            <CardDescription>
+              Point your camera at a plant and click "Analyze Plant".
+            </CardDescription>
+          </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -205,31 +278,11 @@ export default function CropDetectionPage() {
         </Card>
 
         <div className="lg:col-span-2">
-          { isPending ? (
-            <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
-              <CardHeader>
-                <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
-                <CardTitle>Analyzing...</CardTitle>
-                <CardDescription>
-                  Our AI is inspecting your image. Please wait a moment.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          ) : currentPrediction ? (
-            <PredictionResult result={currentPrediction} />
-          ) : (
-             <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
-                <CardHeader>
-                  <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
-                  <CardTitle>Awaiting Analysis</CardTitle>
-                  <CardDescription>
-                    Point your camera at a plant and click "Analyze Plant".
-                  </CardDescription>
-                </CardHeader>
-             </Card>
-          )}
+          {renderAnalysisState()}
         </div>
       </div>
     </div>
   );
 }
+
+    
