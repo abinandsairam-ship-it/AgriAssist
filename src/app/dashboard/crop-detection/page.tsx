@@ -13,7 +13,24 @@ import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
-import type { Prediction } from '@/lib/definitions';
+import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
+
+const generateMockMedicines = (crop: string, condition: string): RecommendedMedicine[] => {
+    if (condition.toLowerCase().includes('healthy')) return [];
+    return [
+        { name: `Anti-Fungal for ${crop}`, price: 25.99, url: '#' },
+        { name: 'Broad-Spectrum Pesticide', price: 32.50, url: '#' },
+    ];
+};
+
+const generateMockVideos = (crop: string, condition: string): RelatedVideo[] => {
+    const topic = condition.toLowerCase().includes('healthy') ? `Care for ${crop}` : `${condition} Treatment`;
+    return [
+        { title: `Tutorial: ${topic}`, videoUrl: '#', thumbnailUrl: `https://picsum.photos/seed/${crop}1/400/225` },
+        { title: `Expert Tips for ${crop}`, videoUrl: '#', thumbnailUrl: `https://picsum.photos/seed/${crop}2/400/225` },
+        { title: `Preventing ${condition} in ${crop}`, videoUrl: '#', thumbnailUrl: `https://picsum.photos/seed/${crop}3/400/225` },
+    ];
+};
 
 export default function CropDetectionPage() {
   const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
@@ -81,7 +98,14 @@ export default function CropDetectionPage() {
         setError(result.error);
         setPredictionResult(undefined);
       } else if (result && 'cropType' in result) {
-        setPredictionResult(result);
+        
+        const fullResult: Prediction = {
+          ...result,
+          recommendedMedicines: generateMockMedicines(result.cropType, result.condition),
+          relatedVideos: generateMockVideos(result.cropType, result.condition),
+        };
+
+        setPredictionResult(fullResult);
         setError(null);
         toast({
           title: 'Success!',
@@ -90,16 +114,13 @@ export default function CropDetectionPage() {
 
         if (user && firestore) {
           try {
-              // Save to Firestore
-            const currentPrediction = result as Prediction;
-            // Exclude properties that are not in the Entry entity
-            const { weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
+            const { recommendedMedicines, relatedVideos, ...historyData } = fullResult;
             const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
             
             const dataToSave = {
               ...historyData,
-              imageUrl: placeholderUrl, // Use a placeholder for storage
-              condition: currentPrediction.condition.split(' (')[0], // Save only common name
+              imageUrl: placeholderUrl, 
+              condition: fullResult.condition.split(' (')[0],
             };
 
             const cropDataCollection = collection(firestore, 'crop_data');

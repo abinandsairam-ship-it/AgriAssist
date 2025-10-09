@@ -3,7 +3,7 @@
 /**
  * @fileOverview Provides an AI-powered "doctor's opinion" for crop analysis.
  *
- * - getDoctorsOpinion - A function to get analysis, recommendations, and related media.
+ * - getDoctorsOpinion - A function to get analysis and recommendations.
  * - GetDoctorsOpinionInput - The input type for the getDoctorsOpinion function.
  * - GetDoctorsOpinionOutput - The return type for the getDoctorsOpinion function.
  */
@@ -41,39 +41,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
   recommendation: z
     .string()
     .describe(
-      'A detailed "Doctor\'s Opinion" report including disease description, severity, symptoms, treatment, prevention, and when to consult a specialist. Formatted in natural language for farmers.'
-    ),
-  recommendedMedicines: z
-    .array(
-      z.object({
-        name: z.string().describe('The commercial name of the medicine.'),
-        price: z
-          .number()
-          .describe('An approximate price in USD for the medicine.'),
-        url: z.string().url().describe('A placeholder URL to a product page.'),
-      })
-    )
-    .describe(
-      'A list of 2-3 recommended medicines or treatments. If the crop is healthy, return an empty array.'
-    ),
-  relatedVideos: z
-    .array(
-      z.object({
-        title: z.string().describe('A concise, relevant title for the video.'),
-        thumbnailUrl: z
-          .string()
-          .url()
-          .describe(
-            'A placeholder thumbnail URL from picsum.photos. Use a unique seed for each.'
-          ),
-        videoUrl: z
-          .string()
-          .url()
-          .describe('A placeholder URL to a video.'),
-      })
-    )
-    .describe(
-      'A list of 3 relevant video URLs for the given crop and condition. If the crop is healthy, provide videos about general maintenance.'
+      'A detailed "Doctor\'s Opinion" report including disease description, severity, symptoms, treatment, and prevention advice. Formatted in natural language for farmers.'
     ),
 });
 export type GetDoctorsOpinionOutput = z.infer<
@@ -96,28 +64,14 @@ const getDoctorsOpinionFlow = ai.defineFlow(
     const llmResponse = await ai.generate({
       prompt: [
         {
-          text: `You are a world-renowned agronomist providing a "Doctor's Opinion" for a farmer.
+          text: `You are a world-renowned agronomist. Analyze the provided image and generate a JSON report with your "Doctor's Opinion".
 
-Analyze the provided image and your expert knowledge to perform the following tasks and generate a comprehensive JSON report.
+Your tasks:
+1.  **Identify Crop**: Determine the 'crop' type. If it's not a plant, set 'crop' to "Not a plant" and nothing else.
+2.  **Diagnose Condition**: Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy') and the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' if healthy).
+3.  **Write Recommendation**: Write a detailed, easy-to-understand 'recommendation'. Include a disease description, severity, symptoms visible, a treatment plan, and prevention measures.
 
-1.  **Identify Crop**: Determine the 'crop' type. If the image does not contain a plant, set 'crop' to "Not a plant" and return immediately.
-2.  **Diagnose Condition**:
-    - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
-    - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' for healthy).
-3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation.
-    - **Disease Description**: Briefly explain the condition.
-    - **Severity & Symptoms**: Describe severity and key symptoms visible in the image.
-    - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
-    - **Preventive Measures**: Suggest actionable steps for prevention.
-    - **When to Consult an Expert**: Advise on when to call a local specialist.
-    - If the condition is 'Healthy', provide advice on maintaining health.
-4.  **Recommend Medicines**:
-    - If not 'Healthy', suggest 2-3 specific commercial treatments. If 'Healthy', return an empty array.
-5.  **Find Related Videos**:
-    - Suggest 3 relevant video URLs for the given crop and condition. If healthy, find videos on general maintenance for that crop.
-    - Use placeholder thumbnails from picsum.photos with unique seeds.
-
-Generate the full JSON output based on the provided schemas. Return only the JSON object.`,
+Generate only the JSON object based on the provided schemas.`,
         },
         { media: { url: photoDataUri } },
       ],
