@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Provides an AI-powered "doctor's opinion" for crop analysis.
@@ -8,14 +9,19 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GetDoctorsOpinionInputSchema = z.object({
   crop: z.string().describe('The type of crop (e.g., Tomato, Corn).'),
   condition: z
     .string()
     .describe(
-      'The diagnosed condition of the crop (e.g., Healthy, Blight, Pest-attacked).'
+      'The common name of the diagnosed condition (e.g., Healthy, Late Blight).'
+    ),
+  conditionScientific: z
+    .string()
+    .describe(
+      'The scientific name of the condition (e.g., Phytophthora infestans).'
     ),
 });
 export type GetDoctorsOpinionInput = z.infer<
@@ -26,7 +32,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
   recommendation: z
     .string()
     .describe(
-      'A detailed recommendation and plan to address the crop condition. Provide a step-by-step guide. This should be 2-3 paragraphs long.'
+      'A detailed "Doctor\'s Opinion" report including disease description, severity, symptoms, treatment, prevention, and when to consult a specialist. Formatted in natural language for farmers.'
     ),
   recommendedMedicines: z
     .array(
@@ -38,7 +44,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
         url: z
           .string()
           .url()
-          .describe('A placeholder URL to a product page, e.g., https://example.com/product/fungicide-x.'),
+          .describe('A placeholder URL to a product page.'),
       })
     )
     .describe(
@@ -57,7 +63,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
         videoUrl: z
           .string()
           .url()
-          .describe('A placeholder URL to a video, e.g., https://youtube.com/watch?v=...'),
+          .describe('A placeholder URL to a video.'),
       })
     )
     .describe('A list of 3 relevant video URLs for the given crop and condition.'),
@@ -76,26 +82,28 @@ const prompt = ai.definePrompt({
   name: 'getDoctorsOpinionPrompt',
   input: { schema: GetDoctorsOpinionInputSchema },
   output: { schema: GetDoctorsOpinionOutputSchema },
-  prompt: `You are a world-renowned agronomist and plant pathologist.
-A farmer has provided the following information about their crop:
-- Crop: {{{crop}}}
-- Condition: {{{condition}}}
+  prompt: `You are a world-renowned agronomist writing a "Doctor's Opinion" for a farmer.
 
-Your task is to provide a comprehensive "Doctor's Opinion".
+Crop: {{{crop}}}
+Condition: {{{condition}}} ({{{conditionScientific}}})
 
-1.  **Recommendation**: Write a detailed, actionable recommendation.
-    - If the plant is not healthy, explain the condition in simple terms, its likely causes, and a step-by-step treatment plan.
-    - If the plant is healthy, provide advice on how to maintain its health and maximize yield.
-    - The tone should be expert, yet easy for a non-specialist to understand.
+Based on this, generate a comprehensive report.
+
+1.  **Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand report.
+    - **Disease Description**: Briefly explain what {{{condition}}} is.
+    - **Severity & Symptoms**: Describe the severity and key symptoms the farmer should watch for.
+    - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
+    - **Preventive Measures**: Suggest actionable steps to prevent this issue in the future.
+    - **When to Consult an Expert**: Advise on when it's time to call a local plant doctor or agricultural specialist.
+    - If the condition is 'Healthy', provide advice on maintaining health and maximizing yield.
 
 2.  **Recommended Medicines**:
-    - If the condition is not 'Healthy', suggest 2-3 specific, commonly available medicines or organic treatments. Provide a fictional but realistic price for each.
-    - If the condition is 'Healthy', return an empty array for this field.
+    - If not 'Healthy', suggest 2-3 specific, commonly available treatments (fungicides, pesticides, organic alternatives).
+    - If 'Healthy', return an empty array.
 
 3.  **Related Videos**:
-    - Suggest 3 relevant YouTube videos that could help the farmer. The topics should be directly related to the crop and its condition. For example, if it's "Tomato Blight", videos could be on "How to Treat Tomato Blight" or "Preventing Fungus in Tomatoes".
-    - For each video, provide a realistic title.
-    - Use placeholder thumbnail URLs from picsum.photos, ensuring each URL has a unique seed (e.g., https://picsum.photos/seed/video1/400/225).
+    - Suggest 3 relevant YouTube videos for the crop and condition.
+    - Use placeholder thumbnails from picsum.photos with unique seeds.
 
 Generate the full JSON output based on the provided schemas.
 `,

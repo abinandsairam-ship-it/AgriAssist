@@ -22,7 +22,8 @@ export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
   cropType: z.string().describe("The type of crop identified, or 'Unknown' if not identifiable."),
-  condition: z.string().describe("The diagnosed condition of the crop (e.g., 'Healthy', 'Late Blight', 'Pest-attacked'), or a reason for uncertainty."),
+  condition: z.string().describe("The common name of the diagnosed condition (e.g., 'Healthy', 'Late Blight')."),
+  conditionScientific: z.string().describe("The scientific (biological) name of the condition (e.g., 'Phytophthora infestans', or 'N/A' if healthy)."),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
@@ -41,12 +42,14 @@ const diagnosePlantFlow = ai.defineFlow(
   },
   async ({ photoDataUri }) => {
     const llmResponse = await ai.generate({
-      prompt: `You are an expert agronomist. Identify the crop and its condition from the provided image.
-- If you can identify the crop and it appears healthy, set condition to "Healthy".
-- If you can identify a disease or pest, set the condition to the common name of that issue (e.g., "Late Blight", "Aphid Infestation").
-- If you cannot identify the crop or disease, set cropType to "Unknown" and condition to "Unable to determine. Please provide a clearer image."
+      prompt: `You are an expert agronomist. Analyze the provided image.
+- Identify the crop. If you cannot, set cropType to "Unknown".
+- Identify the health condition.
+- If a disease or pest is present, provide its common name for 'condition' and its scientific name for 'conditionScientific'. Example: condition: "Late Blight", conditionScientific: "Phytophthora infestans".
+- If the plant is healthy, set 'condition' to "Healthy" and 'conditionScientific' to "N/A".
+- If you are uncertain, provide the most likely possibility and explain the uncertainty in the condition field.
 
-Do not add any extra explanations. Just return the JSON object.`,
+Do not add any extra explanations. Return only the JSON object.`,
       model: 'gemini-1.5-pro-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
@@ -59,3 +62,4 @@ Do not add any extra explanations. Just return the JSON object.`,
     return llmResponse.output()!;
   }
 );
+
