@@ -15,7 +15,7 @@ import { getTranslatedText } from '@/lib/actions';
 import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Tractor } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Video } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLanguage } from '@/context/language-context';
 
@@ -191,7 +191,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
       {!isHealthy && currentPrediction.recommendedMedicines && currentPrediction.recommendedMedicines.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
-            <Tractor className="h-6 w-6 text-primary" />
+            <ShoppingCart className="h-6 w-6 text-primary" />
             <CardTitle>Recommended Medicines</CardTitle>
           </Header>
           <CardContent>
@@ -216,7 +216,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
       {currentPrediction.relatedVideos && currentPrediction.relatedVideos.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
-            <Tractor className="h-6 w-6 text-primary" />
+            <Video className="h-6 w-6 text-primary" />
             <CardTitle>Related Videos</CardTitle>
           </Header>
           <CardContent>

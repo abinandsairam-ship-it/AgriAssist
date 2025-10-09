@@ -5,6 +5,24 @@ import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import type { Prediction } from '@/lib/definitions';
 
+function parseAnalysis(analysis: string): { cropType: string; condition: string } {
+  if (analysis.startsWith('Unknown disease')) {
+    return {
+      cropType: 'Unknown',
+      condition: 'Unknown disease. Please provide clearer image or additional information.',
+    };
+  }
+
+  const diseaseMatch = analysis.match(/Disease: (.*)/);
+  const cropMatch = analysis.match(/Crop: (.*)/);
+
+  const condition = diseaseMatch ? diseaseMatch[1].trim() : 'Could not determine disease';
+  const cropType = cropMatch ? cropMatch[1].trim() : 'Could not determine crop';
+
+  return { cropType, condition };
+}
+
+
 export async function getPrediction(
   prevState: any,
   formData: FormData
@@ -26,8 +44,13 @@ export async function getPrediction(
      return { error: "Could not analyze the plant image. Please try again." };
   }
 
-  const { cropType, condition } = diagnosis;
-  const confidence = (diagnosis as any).confidence || 0.95; // Use confidence if available, otherwise default
+  const { cropType, condition } = parseAnalysis(diagnosis.analysis);
+  
+  if (condition.startsWith('Unknown disease')) {
+    return { error: condition };
+  }
+
+  const confidence = (diagnosis as any).confidence || 0.95;
   const timestamp = Date.now();
 
   let doctorsOpinion;
@@ -47,7 +70,7 @@ export async function getPrediction(
     cropType,
     condition,
     confidence,
-    imageUrl, // Use the captured/uploaded image for immediate display
+    imageUrl,
     timestamp,
     recommendation: doctorsOpinion.recommendation,
     recommendedMedicines: doctorsOpinion.recommendedMedicines,
@@ -61,9 +84,6 @@ export async function getPrediction(
     userId,
   };
   
-  // Saving to firestore is now handled on the client-side
-  // after this server action returns a successful result.
-
   return predictionResult;
 }
 
