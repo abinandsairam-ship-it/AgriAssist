@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Triangle, Loader2, Bot, Camera, ImageUp, Scan } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Triangle, Loader2, Bot, Camera, ImageUp, Scan, AlertTriangle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { recommendCrop } from '@/ai/flows/recommend-crop-flow';
 
 // Mock data, replace with actual data or API calls
 const soilTypes = ['Loamy', 'Sandy', 'Clay', 'Silty', 'Peaty'];
@@ -29,8 +30,8 @@ const soilTypes = ['Loamy', 'Sandy', 'Clay', 'Silty', 'Peaty'];
 export default function CropSuitabilityPage() {
   const [soilType, setSoilType] = useState('');
   const [soilPh, setSoilPh] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [prediction, setPrediction] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [prediction, setPrediction] = useState<{ recommendation: string } | { error: string } | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
@@ -100,18 +101,89 @@ export default function CropSuitabilityPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!imagePreview || !soilType || !soilPh) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Please provide a soil image, soil type, and pH value.',
+      });
+      return;
+    }
+
     setPrediction(null);
-    // Mock API call
-    setTimeout(() => {
-      if (soilType && soilPh) {
-        setPrediction(
-          `Based on ${soilType} soil with a pH of ${soilPh}, Corn and Soybeans are highly suitable for cultivation.`
-        );
+    
+    startTransition(async () => {
+      try {
+        const result = await recommendCrop({
+          soilImageUri: imagePreview,
+          soilType,
+          soilPh: parseFloat(soilPh),
+        });
+        setPrediction(result);
+        toast({
+          title: 'Analysis Complete!',
+          description: 'Crop recommendation is ready.',
+        })
+      } catch (error: any) {
+        console.error('AI recommendation failed:', error);
+        setPrediction({ error: error.message || 'An unexpected error occurred.' });
+        toast({
+          variant: 'destructive',
+          title: 'Analysis Failed',
+          description: error.message || 'Could not get a recommendation from the AI.',
+        })
       }
-      setIsLoading(false);
-    }, 1500);
+    });
   };
+
+  const renderAnalysisState = () => {
+    if (isPending) {
+      return (
+        <>
+          <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
+          <CardTitle className="mt-4">Analyzing...</CardTitle>
+          <CardDescription>
+            Our AI is determining the best crops for your soil.
+          </CardDescription>
+        </>
+      );
+    }
+    
+    if (prediction && 'error' in prediction) {
+      return (
+         <>
+          <AlertTriangle className="mx-auto h-16 w-16 text-destructive" />
+          <CardTitle className="mt-4">Analysis Failed</CardTitle>
+          <CardDescription className="text-destructive">
+            {prediction.error}
+          </CardDescription>
+        </>
+      )
+    }
+
+    if (prediction && 'recommendation' in prediction) {
+      return (
+        <>
+          <CardHeader>
+            <CardTitle>AI Recommendation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{prediction.recommendation}</p>
+          </CardContent>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
+        <CardTitle className="mt-4">Awaiting Analysis</CardTitle>
+        <CardDescription>
+          Your crop recommendation will appear here.
+        </CardDescription>
+      </>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -132,7 +204,7 @@ export default function CropSuitabilityPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
                <div className="space-y-2">
-                <Label>Soil Image (Optional)</Label>
+                <Label>Soil Image</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
                   {imagePreview ? (
                      <img src={imagePreview} alt="Soil preview" className="w-full h-full object-cover" />
@@ -168,7 +240,7 @@ export default function CropSuitabilityPage() {
                     type="button"
                     className="w-full"
                     onClick={captureFromVideo}
-                    disabled={!hasCameraPermission || isLoading}
+                    disabled={!hasCameraPermission || isPending}
                   >
                     <Scan className="mr-2 h-4 w-4" />
                     Use Camera
@@ -178,7 +250,7 @@ export default function CropSuitabilityPage() {
                     variant="outline"
                     className="w-full"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading}
+                    disabled={isPending}
                   >
                     <ImageUp className="mr-2 h-4 w-4" /> Upload Photo
                   </Button>
@@ -213,8 +285,8 @@ export default function CropSuitabilityPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Triangle className="mr-2 h-4 w-4" />
@@ -226,34 +298,7 @@ export default function CropSuitabilityPage() {
         </Card>
 
         <Card className="flex flex-col items-center justify-center text-center p-8 border-dashed">
-          {isLoading && (
-            <>
-              <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
-              <CardTitle className="mt-4">Analyzing...</CardTitle>
-              <CardDescription>
-                Our AI is determining the best crops for your soil.
-              </CardDescription>
-            </>
-          )}
-          {!isLoading && prediction && (
-            <>
-              <CardHeader>
-                <CardTitle>Recommendation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>{prediction}</p>
-              </CardContent>
-            </>
-          )}
-          {!isLoading && !prediction && (
-            <>
-              <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
-              <CardTitle className="mt-4">Awaiting Analysis</CardTitle>
-              <CardDescription>
-                Your crop recommendation will appear here.
-              </CardDescription>
-            </>
-          )}
+          {renderAnalysisState()}
         </Card>
       </div>
     </div>
