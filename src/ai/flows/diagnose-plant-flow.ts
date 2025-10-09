@@ -46,13 +46,14 @@ const diagnosePlantFlow = ai.defineFlow(
 - If you can identify a disease or pest, set the condition to the common name of that issue (e.g., "Late Blight", "Aphid Infestation").
 - If you cannot identify the crop or disease, set cropType to "Unknown" and condition to "Unable to determine. Please provide a clearer image."
 
-Do not add any extra explanations.
-
-Photo: {{media url=photoDataUri}}`,
+Do not add any extra explanations. Just return the JSON object.`,
       model: 'gemini-1.5-pro-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
       },
+      context: [
+        { media: { url: photoDataUri } }
+      ]
     });
 
     return llmResponse.output()!;

@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useActionState } from 'react';
 import { getPrediction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, ImageUp, Loader2, Bot, Scan } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
@@ -16,12 +15,10 @@ import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 
-const initialState = undefined;
-
 export default function CropDetectionPage() {
-  const [state, formAction, isPending] = useActionState(getPrediction, initialState);
+  const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
+  const [isPending, startTransition] = useTransition();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,7 +69,39 @@ export default function CropDetectionPage() {
     if (user?.uid) {
       formData.append('userId', user.uid);
     }
-    formAction(formData);
+    
+    startTransition(async () => {
+      const result = await getPrediction(null, formData);
+      setPredictionResult(result);
+
+      if (result && 'error' in result && result.error) {
+        toast({
+          title: 'Prediction Error',
+          description: result.error,
+          variant: 'destructive',
+        });
+      } else if (result && 'cropType' in result) {
+        const currentPrediction = result as Prediction;
+        toast({
+          title: 'Success!',
+          description: 'Your crop has been analyzed.',
+        });
+
+        if (user && firestore) {
+          // Save to Firestore
+          const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
+          const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
+          
+          const dataToSave = {
+            ...historyData,
+            imageUrl: placeholderUrl, // Use a placeholder to save storage
+          };
+
+          const cropDataCollection = collection(firestore, 'crop_data');
+          addDoc(cropDataCollection, dataToSave);
+        }
+      }
+    });
   }
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,38 +131,9 @@ export default function CropDetectionPage() {
         handleFormSubmit(dataUri);
       }
     }
-  }, [user, formAction]);
+  }, [user]);
 
-  const currentPrediction = state && "cropType" in state ? (state as Prediction) : null;
-
-  useEffect(() => {
-    if (state) {
-      if ('error' in state && state.error) {
-        toast({
-          title: 'Prediction Error',
-          description: state.error,
-          variant: 'destructive',
-        });
-      } else if (currentPrediction && currentPrediction.newPrediction && user && firestore) {
-        toast({
-          title: 'Success!',
-          description: 'Your crop has been analyzed.',
-        });
-
-        // Save to Firestore
-        const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
-        const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
-        
-        const dataToSave = {
-          ...historyData,
-          imageUrl: placeholderUrl, // Use a placeholder to save storage
-        };
-
-        const cropDataCollection = collection(firestore, 'crop_data');
-        addDoc(cropDataCollection, dataToSave);
-      }
-    }
-  }, [state, toast, user, firestore, currentPrediction]);
+  const currentPrediction = predictionResult && "cropType" in predictionResult ? (predictionResult as Prediction) : null;
 
   return (
     <div className="container mx-auto p-4 md:p-8">
