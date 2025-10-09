@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Provides an AI-powered "doctor's opinion" for crop analysis.
@@ -31,18 +30,14 @@ const GetDoctorsOpinionOutputSchema = z.object({
   condition: z
     .string()
     .describe(
-      "The common name of the diagnosed condition (e.g., 'Healthy', 'Late Blight')."
-    ),
-  conditionScientific: z
-    .string()
-    .describe(
-      "The scientific (biological) name of the condition (e.g., 'Phytophthora infestans', or 'N/A' if healthy)."
+      "The common name of the diagnosed condition (e.g., 'Healthy', 'Late Blight (Phytophthora infestans)')."
     ),
   recommendation: z
     .string()
     .describe(
-      'A detailed "Doctor\'s Opinion" report including disease description, severity, symptoms, treatment, and prevention advice. Formatted in natural language for farmers.'
+      'A detailed "Doctor\'s Opinion" report including a brief disease description, symptoms, a treatment plan, and prevention advice. Formatted in natural language for farmers.'
     ),
+  confidence: z.number().min(0).max(1).describe('The confidence level of the prediction, from 0 to 1.'),
 });
 export type GetDoctorsOpinionOutput = z.infer<
   typeof GetDoctorsOpinionOutputSchema
@@ -67,9 +62,10 @@ const getDoctorsOpinionFlow = ai.defineFlow(
           text: `You are a world-renowned agronomist. Analyze the provided image and generate a JSON report with your "Doctor's Opinion".
 
 Your tasks:
-1.  **Identify Crop**: Determine the 'crop' type. If it's not a plant, set 'crop' to "Not a plant" and all other fields to "N/A".
-2.  **Diagnose Condition**: Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy') and the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' if healthy).
-3.  **Write Recommendation**: Write a detailed, easy-to-understand 'recommendation'. Include a disease description, severity, symptoms visible, a treatment plan, and prevention measures.
+1.  **Identify Crop**: Determine the 'crop' type. If it's not a plant, set 'crop' to "Not a plant" and all other fields to "N/A" with 0 confidence.
+2.  **Diagnose Condition**: Determine the common 'condition' name and include the scientific name in parentheses, like 'Late Blight (Phytophthora infestans)'. If healthy, the condition should be 'Healthy'.
+3.  **Assess Confidence**: Provide a 'confidence' score (0.0 to 1.0) for your diagnosis.
+4.  **Write Recommendation**: Write a detailed, easy-to-understand 'recommendation'. Include a disease description, severity, symptoms visible, a treatment plan, and prevention measures.
 
 Generate only the JSON object based on the provided schemas. Do not include any other text or formatting.`,
         },
@@ -81,6 +77,10 @@ Generate only the JSON object based on the provided schemas. Do not include any 
       },
     });
 
-    return llmResponse.output()!;
+    const output = llmResponse.output();
+    if (!output) {
+      throw new Error("AI failed to generate a valid analysis.");
+    }
+    return output;
   }
 );

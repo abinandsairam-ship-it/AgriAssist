@@ -1,4 +1,3 @@
-
 'use client';
 
 import { getPrediction } from '@/lib/actions';
@@ -81,8 +80,28 @@ export default function CropDetectionPage() {
         setError(result.error);
         setPredictionResult(undefined);
       } else if (result && 'cropType' in result) {
-        
-        setPredictionResult(result);
+        // Enhance the result with client-side generated mock data for UI purposes
+        const isHealthy = (result.condition || '').toLowerCase().includes('healthy');
+        const enhancedResult: Prediction = {
+          ...result,
+          recommendedMedicines: isHealthy
+            ? []
+            : [{ name: 'Universal Fungicide', url: '#', price: 25.00 }],
+          relatedVideos: [
+            {
+              title: `Tips for managing ${result.condition}`,
+              videoUrl: '#',
+              thumbnailUrl: `https://picsum.photos/seed/${result.cropType}/400/225`,
+            },
+          ],
+          weather: {
+            location: 'Punjab, India',
+            temperature: '30°C',
+            condition: 'Sunny',
+          },
+        };
+
+        setPredictionResult(enhancedResult);
         setError(null);
         toast({
           title: 'Success!',
@@ -91,13 +110,14 @@ export default function CropDetectionPage() {
 
         if (user && firestore) {
           try {
-            const { recommendedMedicines, relatedVideos, ...historyData } = result;
-            const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
-            
+            // Save only the core AI data to Firestore
             const dataToSave = {
-              ...historyData,
-              imageUrl: placeholderUrl,
-              condition: result.condition.split(' (')[0],
+              userId: enhancedResult.userId || '',
+              timestamp: enhancedResult.timestamp,
+              cropType: enhancedResult.cropType,
+              condition: enhancedResult.condition.split(' (')[0],
+              imageUrl: `https://picsum.photos/seed/${enhancedResult.timestamp}/600/400`, // Use a placeholder for history
+              confidence: enhancedResult.confidence,
             };
 
             const cropDataCollection = collection(firestore, 'crop_data');

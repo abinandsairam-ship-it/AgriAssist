@@ -1,4 +1,3 @@
-
 export type RecommendedMedicine = {
   name: string;
   price: number;
@@ -26,7 +25,7 @@ export type Prediction = {
   recommendation: string;
   recommendedMedicines: RecommendedMedicine[];
   relatedVideos: RelatedVideo[];
-  weather: Weather;
+  weather?: Weather;
   userId?: string;
   newPrediction?: boolean;
 };
