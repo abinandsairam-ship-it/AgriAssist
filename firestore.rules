@@ -2,77 +2,68 @@
  * @fileoverview Firestore Security Rules for Agriassist.
  *
  * Core Philosophy:
- * This ruleset prioritizes security and data ownership, ensuring users can only access
- * and modify data they own. Public read access is generally disallowed unless explicitly
- * permitted for specific collections. Data structure integrity is loosely enforced, focusing
- * on relational integrity (e.g., user IDs) rather than comprehensive schema validation,
- * allowing for rapid prototyping and schema evolution.
+ * This ruleset enforces a user-ownership model for `crop_data` entries, allowing only the creating user to modify or delete their own entries.
+ * History entries are open to all users.
  *
  * Data Structure:
- * - /crop_data/{entryId}: Stores user-submitted crop data entries. Each entry contains a userId
- *   field indicating the owner.
- * - /history/{historyId}: Stores a log of user actions and events.
+ * - `/crop_data/{entryId}`: Stores user-submitted form entries. Each entry contains a `userId` field indicating ownership.
+ * - `/history/{historyId}`: Stores a log of user actions and events. These are considered public read but deny write.
  *
  * Key Security Decisions:
- * - User-owned data: Entries in `/crop_data` are secured to allow only the owning user to read,
- *   update, or delete them.
- * - Public listing disabled: Listing of entries in `/crop_data` is disallowed to prevent unintended
- *   exposure of user data.  If public listing is needed, the data model should be changed to
- *   use separate private and public collections or a top-level public collection with an ownerId.
- * - History is write-only by the server: Only the server can create history entries.
+ * - Users can only create, update, and delete entries they own.
+ * - Listing and getting entries in crop_data is open to all.
+ * - The `history` collection is readable by all but denies write access.
  *
  * Denormalization for Authorization:
- * - The `userId` field is included directly in the `/crop_data/{entryId}` documents to allow for
- *   efficient ownership checks without requiring additional `get()` operations.
- *
- * Structural Segregation:
- * - No structural segregation is used in this version.
+ * - The `crop_data` entries denormalize the `userId` field directly onto the document to enable efficient ownership checks without additional reads.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures user-submitted crop data entries. Only the owner can read, update, or delete entries. Listing is disabled.
+     * @description Controls access to the `crop_data` collection, which stores user-submitted form entries.
      * @path /crop_data/{entryId}
-     * @allow (get) User A can read entryA if entryA.userId == userA.uid.
-     * @allow (create) User A can create entryA if entryA.userId == userA.uid.
-     * @allow (update) User A can update entryA if entryA.userId == userA.uid and the document exists.
-     * @allow (delete) User A can delete entryA if entryA.userId == userA.uid and the document exists.
-     * @deny (get) User B cannot read entryA if entryA.userId == userA.uid and userA.uid != userB.uid.
-     * @deny (create) User B cannot create entryA if entryA.userId == userA.uid and userA.uid != userB.uid.
-     * @deny (update) User B cannot update entryA if entryA.userId == userA.uid and userA.uid != userB.uid.
-     * @deny (delete) User B cannot delete entryA if entryA.userId == userA.uid and userA.uid != userB.uid.
-     * @principle Enforces document ownership for all operations on crop data entries.
+     * @allow (create) - Authenticated user creates a new entry with their own userId.
+     * @allow (update) - Authenticated user updates an existing entry they own.
+     * @allow (delete) - Authenticated user deletes an existing entry they own.
+     * @allow (get) - Any user can retrieve a single entry.
+     * @allow (list) - Any user can list entries.
+     * @deny (create) - User attempts to create an entry with a userId that doesn't match their own.
+     * @deny (update) - User attempts to update an entry they don't own.
+     * @deny (delete) - User attempts to delete an entry they don't own.
+     * @principle Enforces document ownership for writes; allows public reads.
      */
     match /crop_data/{entryId} {
-      // Read rules
-      allow get: if isSignedIn() && isOwner(resource.data.userId);
-      allow list: if false;
+      // Allow anyone to read crop data entries
+      allow get, list: if true;
 
-      // Write rules
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-      allow update: if isSignedIn() && isExistingOwner(resource.data.userId) && (resource.data.userId == request.resource.data.userId);
+      // Only allow creating an entry if the userId matches the authenticated user's ID.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Allow update if the user is signed in and is the owner of the entry.
+      allow update: if isSignedIn() && isExistingOwner(resource.data.userId);
+
+      // Allow delete if the user is signed in and is the owner of the entry.
       allow delete: if isSignedIn() && isExistingOwner(resource.data.userId);
     }
 
     /**
-     * @description Secures history entries. Only the server (or admin) should be able to write history entries. Users cannot read history.
+     * @description Controls access to the `history` collection, which stores a log of user actions.
      * @path /history/{historyId}
-     * @allow (create) The server can create history entries (assuming it has a way to authenticate).
-     * @deny (get) No one can read history entries.
-     * @deny (list) No one can list history entries.
-     * @deny (update) No one can update history entries.
-     * @deny (delete) No one can delete history entries.
-     * @principle Restricts history modifications to the server to maintain audit trail integrity.
+     * @allow (get) - Any user can retrieve a history entry.
+     * @allow (list) - Any user can list history entries.
+     * @deny (create) - No one can create history entries.
+     * @deny (update) - No one can update history entries.
+     * @deny (delete) - No one can delete history entries.
+     * @principle Allows public reads; denies all writes.
      */
     match /history/{historyId} {
-      // Read rules
-      allow get: if false;
-      allow list: if false;
+      // Allow anyone to read history entries
+      allow get, list: if true;
 
-      // Write rules
-      allow create: if false; // TODO: Implement service account authentication for server-side writes
+      // Deny all write operations. History entries are read-only.
+      allow create: if false;
       allow update: if false;
       allow delete: if false;
     }

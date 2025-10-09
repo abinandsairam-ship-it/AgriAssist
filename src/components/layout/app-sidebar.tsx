@@ -25,7 +25,7 @@ import {
   Leaf,
   Calendar,
   Video,
-  Activity,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -112,11 +112,11 @@ export function AppSidebar() {
                    <li>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={pathname.startsWith('/dashboard/activity-history')}
+                      isActive={pathname.startsWith('/dashboard/history')}
                     >
-                      <Link href="/dashboard/activity-history">
-                        <Activity />
-                        <span>Activity History</span>
+                      <Link href="/dashboard/history">
+                        <History />
+                        <span>Prediction History</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>
