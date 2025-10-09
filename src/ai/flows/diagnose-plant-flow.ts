@@ -20,44 +20,18 @@ const DiagnosePlantInputSchema = z.object({
 export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
-  crop: z.string().describe('The identified name of the crop.'),
-  disease: z
-    .string()
-    .describe(
-      'The identified disease in the format "Common Name (Biological Name)".'
-    ),
+  cropType: z.string().describe('The identified name of the crop.'),
+  condition: z.string().describe('The general condition of the plant (e.g., Healthy, Late Blight).'),
+  diseaseCommonName: z.string().optional().describe('The common name of the identified disease.'),
+  diseaseBiologicalName: z.string().optional().describe('The biological (Latin) name of the identified disease.'),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
 export async function diagnosePlant(
   input: DiagnosePlantInput
-): Promise<any> { // Return 'any' to accommodate the legacy structure.
+): Promise<DiagnosePlantOutput> {
   const result = await diagnosePlantFlow(input);
-  
-  // Adapt the new, stricter output to the old format expected by the UI.
-  let condition = result.disease;
-  let diseaseCommonName: string | undefined;
-  let diseaseBiologicalName: string | undefined;
-
-  if (
-    result.disease.includes('(') &&
-    result.disease.includes(')') &&
-    result.disease !==
-      'Unknown disease. Please provide a clearer image or additional information.'
-  ) {
-    const parts = result.disease.replace(')', '').split('(');
-    condition = parts[0].trim();
-    diseaseCommonName = parts[0].trim();
-    diseaseBiologicalName = parts[1].trim();
-  }
-
-  return {
-    cropType: result.crop, // The UI expects 'cropType'
-    condition: condition, // The UI expects 'condition'
-    diseaseCommonName: diseaseCommonName,
-    diseaseBiologicalName: diseaseBiologicalName,
-    confidence: 0.95, // Provide a default confidence
-  };
+  return { ...result, confidence: 0.95 }; // Add default confidence
 }
 
 const searchWebForDisease = ai.defineTool(
@@ -116,14 +90,12 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert agronomist. Your task is to identify the crop and any disease from the provided image.
 
 Instructions:
-1.  First, identify the crop in the image (e.g., Rice, Tomato, etc.).
-2.  Second, identify the primary disease affecting the crop.
+1.  First, identify the crop in the image (e.g., Rice, Tomato, etc.). Set the 'cropType' field.
+2.  Second, identify the primary disease affecting the crop. Set the 'condition' field to the common name of the disease.
 3.  Third, you MUST use the 'searchWebForDisease' tool to find the biological name of the identified disease. For example, if you see Brown Spot on Rice, you must call the tool with the query "Rice Brown Spot".
-4.  You MUST respond in the following strict format:
-    - The 'crop' field should contain only the crop name.
-    - The 'disease' field should contain the disease formatted as "Common Name (Biological Name)".
-    - If the plant is healthy, set the disease field to "Healthy".
-5.  If you cannot identify the crop or disease with high confidence, set the 'crop' to "Unknown" and the 'disease' field to "Unknown disease. Please provide a clearer image or additional information."
+4.  Set the 'diseaseCommonName' and 'diseaseBiologicalName' fields based on the tool's output.
+5.  If the plant is healthy, set the 'condition' to "Healthy" and leave the disease name fields empty.
+6.  If you cannot identify the crop or disease with high confidence, set the 'cropType' to "Unknown" and the 'condition' to "Unknown disease. Please provide a clearer image or additional information."
 
 Analyze this image: {{media url=photoDataUri}}`,
 });

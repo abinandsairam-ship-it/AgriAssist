@@ -26,7 +26,8 @@ export async function getPrediction(
      return { error: "Could not analyze the plant image. Please try again." };
   }
 
-  const { cropType, condition, confidence, diseaseCommonName, diseaseBiologicalName } = diagnosis;
+  const { cropType, condition, diseaseCommonName, diseaseBiologicalName } = diagnosis;
+  const confidence = (diagnosis as any).confidence || 0.95; // Use confidence if available, otherwise default
   const timestamp = Date.now();
 
   let doctorsOpinion;
