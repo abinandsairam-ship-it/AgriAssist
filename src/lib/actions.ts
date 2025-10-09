@@ -21,9 +21,9 @@ export async function getPrediction(
   let diagnosis;
   try {
     diagnosis = await diagnosePlant({ photoDataUri: imageUri });
-  } catch (e) {
-     console.error("Error diagnosing plant:", e);
-     return { error: "Could not analyze the plant image. Please try again." };
+  } catch (e: any) {
+     console.error("Error in diagnosePlant flow:", e.message);
+     return { error: "Could not analyze the plant image. The AI model may be offline. Please try again later." };
   }
 
   const { cropType, condition } = diagnosis;
@@ -39,11 +39,11 @@ export async function getPrediction(
   let doctorsOpinion;
   try {
     doctorsOpinion = await getDoctorsOpinion({ crop: cropType, condition });
-  } catch (e) {
-    console.error('Error getting doctor\'s opinion:', e);
-    // Fallback to a default message if the opinion flow fails
+  } catch (e: any) {
+    console.error("Error in getDoctorsOpinion flow:", e.message);
+    // Fallback to a default message if the opinion flow fails, but still return a valid prediction
     doctorsOpinion = {
-      recommendation: `Could not retrieve AI doctor's opinion for ${cropType} with condition ${condition}. Please try again.`,
+      recommendation: `AI analysis for ${cropType} (${condition}) is complete. However, the detailed doctor's opinion could not be retrieved at this time.`,
       recommendedMedicines: [],
       relatedVideos: [],
     };
