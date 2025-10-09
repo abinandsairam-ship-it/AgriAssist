@@ -33,3 +33,12 @@ export type Prediction = {
 export type HistoryItem = Pick<Prediction, 'cropType' | 'condition' | 'confidence' | 'imageUrl' | 'timestamp' | 'userId'> & {
   id: string;
 };
+
+export type ActivityHistoryItem = {
+    id: string;
+    userId: string;
+    actionType: string;
+    timestamp: number;
+    targetId?: string;
+    details?: string;
+}

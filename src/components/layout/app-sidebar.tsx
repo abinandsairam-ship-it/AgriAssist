@@ -26,6 +26,7 @@ import {
   History,
   Calendar,
   Video,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -116,7 +117,18 @@ export function AppSidebar() {
                     >
                       <Link href="/dashboard/history">
                         <History />
-                        <span>History</span>
+                        <span>Prediction History</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </li>
+                   <li>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname.startsWith('/dashboard/activity-history')}
+                    >
+                      <Link href="/dashboard/activity-history">
+                        <Activity />
+                        <span>Activity History</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </li>

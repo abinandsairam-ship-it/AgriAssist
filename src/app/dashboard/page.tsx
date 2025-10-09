@@ -18,6 +18,7 @@ import {
   Newspaper,
   Calendar,
   LayoutGrid,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -49,8 +50,14 @@ const dashboardItems = [
   {
     href: '/dashboard/history',
     icon: History,
-    title: 'History',
+    title: 'Prediction History',
     description: 'View past analysis records.',
+  },
+  {
+    href: '/dashboard/activity-history',
+    icon: Activity,
+    title: 'Activity History',
+    description: 'View a log of all user actions.'
   },
   {
     href: '/dashboard/supply-store',

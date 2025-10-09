@@ -7,7 +7,7 @@ import {
   useUser,
 } from '@/firebase';
 import { HistoryList } from '@/components/dashboard/history-list';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileClock, Loader2, Lock } from 'lucide-react';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import type { HistoryItem } from '@/lib/definitions';
@@ -42,7 +42,11 @@ export default function HistoryPage() {
   if (isUserLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <Card className="flex flex-col items-center justify-center p-12 text-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <CardTitle className="mt-4">Loading History...</CardTitle>
+            <CardDescription>Resolving user session...</CardDescription>
+        </Card>
       </div>
     );
   }
@@ -88,9 +92,11 @@ export default function HistoryPage() {
       </header>
 
       {isHistoryLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
+         <Card className="flex flex-col items-center justify-center p-12 text-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <CardTitle className="mt-4">Loading Predictions...</CardTitle>
+            <CardDescription>Fetching your analysis history from the cloud.</CardDescription>
+        </Card>
       ) : error ? (
         <Card>
           <CardContent className="p-8 text-center text-destructive">
@@ -108,6 +114,9 @@ export default function HistoryPage() {
             <p className="text-muted-foreground mt-2">
               Make your first prediction to see your history here.
             </p>
+             <Button asChild className="mt-4">
+              <Link href="/dashboard/crop-detection">Make a Prediction</Link>
+            </Button>
           </CardContent>
         </Card>
       )}

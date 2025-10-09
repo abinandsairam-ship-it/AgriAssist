@@ -13,15 +13,25 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, initiateEmailSignIn, initiateEmailSignUp, initiateAnonymousSignIn, useUser } from '@/firebase';
+import {
+  useAuth,
+  initiateEmailSignIn,
+  initiateEmailSignUp,
+  initiateAnonymousSignIn,
+  useUser,
+  useFirestore,
+  addDocumentNonBlocking,
+} from '@/firebase';
 import { Leaf, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { collection } from 'firebase/firestore';
 
 export default function SignInPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -29,8 +39,24 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const logHistoryEvent = (uid: string, type: 'email' | 'anonymous' | 'signup') => {
+      if (!firestore) return;
+      const historyCollection = collection(firestore, 'history');
+      let details = 'User signed in.';
+      if (type === 'anonymous') details = 'User signed in as guest.';
+      if (type === 'signup') details = 'New user signed up.';
+
+      addDocumentNonBlocking(historyCollection, {
+        userId: uid,
+        actionType: 'login',
+        timestamp: Date.now(),
+        details: details,
+      });
+  }
+
   useEffect(() => {
     if (!isUserLoading && user) {
+      logHistoryEvent(user.uid, user.isAnonymous ? 'anonymous' : 'email');
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -58,11 +84,14 @@ export default function SignInPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await initiateEmailSignUp(auth, email, password);
+      const userCredential = await initiateEmailSignUp(auth, email, password);
       toast({
         title: 'Account Created!',
         description: 'Signing you in...',
       });
+      if(userCredential?.user?.uid){
+         logHistoryEvent(userCredential.user.uid, 'signup');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',

@@ -140,7 +140,18 @@ export default function CropDetectionPage() {
         };
 
         const cropDataCollection = collection(firestore, 'crop_data');
-        addDocumentNonBlocking(cropDataCollection, dataToSave);
+        addDocumentNonBlocking(cropDataCollection, dataToSave).then((docRef) => {
+            if (docRef && user) {
+                const historyCollection = collection(firestore, 'history');
+                addDocumentNonBlocking(historyCollection, {
+                    userId: user.uid,
+                    actionType: 'create_prediction',
+                    timestamp: Date.now(),
+                    targetId: docRef.id,
+                    details: `Created analysis for ${cropType}: ${condition}`
+                });
+            }
+        });
       }
     }
   }, [state, toast, user, firestore, currentPrediction]);
