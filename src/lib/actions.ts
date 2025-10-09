@@ -60,7 +60,7 @@ export async function getPrediction(
     userId,
   };
   
-  // The saving to firestore will now be handled on the client-side
+  // Saving to firestore is now handled on the client-side
   // after this server action returns a successful result.
 
   return predictionResult;

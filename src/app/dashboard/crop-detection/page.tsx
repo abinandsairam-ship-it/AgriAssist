@@ -105,7 +105,7 @@ export default function CropDetectionPage() {
         handleFormSubmit(formData);
       }
     }
-  }, [handleFormSubmit]);
+  }, [user, formAction]);
 
   const currentPrediction = state && "cropType" in state ? state : null;
 
@@ -126,8 +126,16 @@ export default function CropDetectionPage() {
         // Save to Firestore
         const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
         const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
+        
+        // Destructure to only save what's needed for the history list
+        const { cropType, condition, confidence, timestamp, userId } = historyData;
+
         const dataToSave = {
-          ...historyData,
+          cropType,
+          condition,
+          confidence,
+          timestamp,
+          userId,
           imageUrl: placeholderUrl, // Use a placeholder to save storage
         };
 
@@ -153,7 +161,10 @@ export default function CropDetectionPage() {
             <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} action={formAction} className="space-y-4">
+            <form ref={formRef} onSubmit={(e) => {
+              e.preventDefault();
+              handleFormSubmit(new FormData(e.currentTarget));
+            }} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="image-upload">Live Camera Feed</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">

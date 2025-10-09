@@ -30,6 +30,6 @@ export type Prediction = {
   userId?: string;
 };
 
-export type HistoryItem = Omit<Prediction, 'newPrediction' | 'weather' | 'recommendation' | 'recommendedMedicines' | 'relatedVideos'> & {
+export type HistoryItem = Pick<Prediction, 'cropType' | 'condition' | 'confidence' | 'imageUrl' | 'timestamp' | 'userId'> & {
   id: string;
 };
