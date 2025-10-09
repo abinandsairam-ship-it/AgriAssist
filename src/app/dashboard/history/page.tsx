@@ -18,20 +18,19 @@ export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // The query is now dependent on the user's ID.
-  // It will be `null` if the user is not logged in.
-  const historyQuery = useMemoFirebase(
-    () =>
-      firestore && user
-        ? query(
-            collection(firestore, 'crop_data'),
-            where('userId', '==', user.uid),
-            orderBy('timestamp', 'desc'),
-            limit(20)
-          )
-        : null,
-    [firestore, user]
-  );
+  const historyQuery = useMemoFirebase(() => {
+    // Only construct the query if we have a firestore instance AND a user.
+    if (firestore && user?.uid) {
+      return query(
+        collection(firestore, 'crop_data'),
+        where('userId', '==', user.uid),
+        orderBy('timestamp', 'desc'),
+        limit(20)
+      );
+    }
+    // Return null if we don't have what we need. useCollection will wait.
+    return null;
+  }, [firestore, user]);
 
   const {
     data: history,
@@ -39,7 +38,7 @@ export default function HistoryPage() {
     error,
   } = useCollection<HistoryItem>(historyQuery);
 
-  const isLoading = isUserLoading || isHistoryLoading;
+  const isLoading = isUserLoading || (user && isHistoryLoading);
 
   if (isUserLoading) {
     return (

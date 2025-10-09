@@ -2,29 +2,23 @@
 {
   "entities": {
     "Entry": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Entry",
-      "type": "object",
       "description": "Represents a user-submitted form entry in Agriassist, stored in Firestore.",
+      "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Entry entity."
-        },
         "userId": {
           "type": "string",
-          "description": "User ID of the user who submitted the form.  Empty string if user is not authenticated."
+          "description": "User ID of the user who submitted the form. Empty string if user is not authenticated."
         },
         "timestamp": {
-          "type": "string",
-          "description": "Timestamp of when the form was submitted.",
-          "format": "date-time"
+          "type": "number",
+          "description": "Timestamp of when the form was submitted."
         },
         "cropType": {
           "type": "string",
           "description": "The predicted crop type from the AI model."
         },
-        "conditionDisease": {
+        "condition": {
           "type": "string",
           "description": "The predicted health status or disease condition of the crop."
         },
@@ -33,17 +27,18 @@
           "description": "URL of the uploaded crop image stored in Cloud Storage.",
           "format": "uri"
         },
-        "predictionConfidence": {
+        "confidence": {
           "type": "number",
           "description": "The prediction confidence level of the AI model (0-1)."
         }
       },
       "required": [
-        "id",
+        "userId",
         "timestamp",
         "cropType",
-        "conditionDisease",
-        "imageUrl"
+        "condition",
+        "imageUrl",
+        "confidence"
       ]
     }
   },
@@ -54,24 +49,11 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/crop_data/{entryId}",
-        "definition": {
-          "entityName": "Entry",
-          "schema": {
-            "$ref": "#/backend/entities/Entry"
-          },
-          "description": "Stores user-submitted form entries. Includes fields for userId, timestamp, cropType, conditionDisease, imageUrl, and predictionConfidence.",
-          "params": [
-            {
-              "name": "entryId",
-              "description": "Unique identifier for the entry document."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to store user-submitted form entries in a secure and scalable manner. The core collection is `crop_data`. Each document in this collection represents a single form submission, identified by a unique ID. The structure ensures authorization independence by storing all necessary data within each entry document. Since authentication is optional, the `userId` field can be empty. All documents within the `crop_data` collection share the same security requirements, which simplifies the security rules. This structure supports listing all entries for a specific user, by filtering by `userId` (for authenticated users) and enables QAPs since rules are not filters."
+    "/crop_data/{entry}": {
+      "schema": {
+        "$ref": "#/entities/Entry"
+      },
+      "description": "Stores user-submitted form entries. Includes fields for userId, timestamp, cropType, condition, imageUrl, and predictionConfidence."
+    }
   }
 }

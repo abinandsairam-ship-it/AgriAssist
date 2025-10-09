@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useActionState } from 'react';
+import { useActionState, use } from 'react';
 import { getPrediction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const initialState = undefined;
 
@@ -26,6 +28,9 @@ export default function CropDetectionPage() {
   const { toast } = useToast();
   
   const formRef = useRef<HTMLFormElement>(null);
+
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -63,6 +68,9 @@ export default function CropDetectionPage() {
   }, [toast]);
   
   const handleFormSubmit = (formData: FormData) => {
+    if (user?.uid) {
+      formData.append('userId', user.uid);
+    }
     formAction(formData);
   }
   
@@ -97,7 +105,9 @@ export default function CropDetectionPage() {
         handleFormSubmit(formData);
       }
     }
-  }, []);
+  }, [handleFormSubmit]);
+
+  const currentPrediction = state && "cropType" in state ? state : null;
 
   useEffect(() => {
     if (state) {
@@ -107,16 +117,25 @@ export default function CropDetectionPage() {
           description: state.error,
           variant: 'destructive',
         });
-      } else if (state && 'newPrediction' in state) {
+      } else if (currentPrediction && currentPrediction.newPrediction && user && firestore) {
         toast({
           title: 'Success!',
           description: 'Your crop has been analyzed.',
         });
+
+        // Save to Firestore
+        const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
+        const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
+        const dataToSave = {
+          ...historyData,
+          imageUrl: placeholderUrl, // Use a placeholder to save storage
+        };
+
+        const cropDataCollection = collection(firestore, 'crop_data');
+        addDocumentNonBlocking(cropDataCollection, dataToSave);
       }
     }
-  }, [state, toast]);
-
-  const currentPrediction = state && "cropType" in state ? state : null;
+  }, [state, toast, user, firestore, currentPrediction]);
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -134,7 +153,7 @@ export default function CropDetectionPage() {
             <CardTitle>Live Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <form ref={formRef} action={handleFormSubmit} className="space-y-4">
+            <form ref={formRef} action={formAction} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="image-upload">Live Camera Feed</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">

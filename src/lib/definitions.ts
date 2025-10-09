@@ -30,6 +30,6 @@ export type Prediction = {
   userId?: string;
 };
 
-export type HistoryItem = Prediction & {
+export type HistoryItem = Omit<Prediction, 'newPrediction' | 'weather' | 'recommendation' | 'recommendedMedicines' | 'relatedVideos'> & {
   id: string;
 };

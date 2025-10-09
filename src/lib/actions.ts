@@ -4,32 +4,13 @@ import { translatePredictionResults } from '@/ai/flows/translate-prediction-resu
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import type { Prediction } from '@/lib/definitions';
-import { storeCropDataInFirestore } from '@/ai/flows/store-crop-data-in-firestore';
-import { auth } from 'firebase-admin';
-
-async function getUserId(): Promise<string | null> {
-  try {
-    const user = await auth().verifyIdToken(
-      (await auth().createCustomToken('server-user')) || ''
-    );
-    return user.uid;
-  } catch (e) {
-    if (e instanceof Error && e.message.includes('ID token has expired')) {
-      // This is a known issue with server actions and will be addressed.
-      // For now, we can fall back to a hardcoded user ID.
-      return 'server-user';
-    }
-    console.error('Error getting user ID:', e);
-    return null;
-  }
-}
 
 export async function getPrediction(
   prevState: any,
   formData: FormData
 ): Promise<(Prediction & { newPrediction: boolean }) | { error: string }> {
   const imageUri = formData.get('imageUri') as string;
-  const userId = await getUserId();
+  const userId = formData.get('userId') as string | undefined;
 
   if (!imageUri) {
     return { error: 'Please upload or capture an image.' };
@@ -76,22 +57,11 @@ export async function getPrediction(
       condition: 'Sunny',
     },
     newPrediction: true,
-    userId: userId || undefined,
+    userId,
   };
   
-  if (userId) {
-    try {
-      const placeholderUrl = `https://picsum.photos/seed/${timestamp}/600/400`;
-      await storeCropDataInFirestore({
-          ...predictionResult,
-          imageUrl: placeholderUrl, // store a placeholder in Firestore
-      });
-    } catch(e) {
-        console.error("Firestore storage failed:", e);
-        // We can still show the result to the user even if db save fails
-    }
-  }
-
+  // The saving to firestore will now be handled on the client-side
+  // after this server action returns a successful result.
 
   return predictionResult;
 }

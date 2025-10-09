@@ -1,66 +1,61 @@
 /**
- * @file Agriassist Firestore Security Rules
- * @description This ruleset enforces a data model where entries are stored in a flat collection (`/entries/{entryId}`).
+ * @fileoverview Firestore Security Rules for Agriassist.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a mixed security model.  Unauthenticated users can create entries, but authenticated users' ownership will be validated if they provide a userId.
  *
  * Data Structure:
- * All entries are stored under the `/entries/{entryId}` path. Each entry document contains all the data required
- * to make authorization decisions, including the `userId` of the user who created the entry.
+ * All entries are stored in the top-level `/crop_data/{entryId}` collection. Each entry document contains data about the crop and prediction results,
+ * along with the user ID (if available).
  *
  * Key Security Decisions:
- * - Public Read: All entries are publicly readable.
- * - Owner-Only Writes: Only the user who created the entry can modify or delete it.
- * - Unauthenticated Users: Anonymous users can create entries (userId is set to "").
+ * - Allows public read access to all entries.
+ * - Allows unauthenticated creates, but authenticated user ID must match if provided.
+ * - Enforces ownership for authenticated updates and deletes (if userId is populated).
  *
  * Denormalization for Authorization:
- * The `userId` field is stored directly on each entry document to avoid costly `get()` calls
- * to a separate `/users/{userId}` collection during authorization checks. This allows for simple,
- * performant rules that directly verify ownership.
- *
- * Structural Segregation:
- * The app uses a single `entries` collection to store all entries, regardless of the user's authentication status.
- * This approach simplifies the data model and eliminates the need for separate collections for authenticated and
- * anonymous users.
+ *  - The `entryId` is denormalized and duplicated as the document ID to simplify `update` and `delete` rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants public read access to all entries and restricts write access to the owner of the entry.
-     * @path /entries/{entryId}
-     * @allow (get, list): Any user can read any entry.
-     * @allow (create): Any user can create an entry if the `userId` matches their auth UID or is an empty string.
-     * @allow (update, delete): Only the owner of the entry can update or delete it, and only if the document exists.
-     * @deny (create): A user cannot create an entry with a `userId` that does not match their auth UID when authenticated.
-     * @deny (update, delete): A non-owner cannot update or delete an entry.
-     * @principle Public Read with Owner-Only Writes, Enforces document ownership for writes.
+     * @description Controls access to individual crop data entries.
+     * @path /crop_data/{entryId}
+     * @allow (get, list): Allow public access to read crop data entries.
+     * @allow (create): Allow creation if userId matches auth.uid or userId is an empty string.
+     * @allow (update, delete): Allow if the user is the owner of the entry and the entry exists.
+     * @deny (create): Deny if userId doesn't match auth.uid when the user is authenticated.
+     * @deny (update, delete): Deny if the user is not the owner of the entry or the entry does not exist.
+     * @principle Allows public reads, but enforces ownership for updates and deletes.
      */
-    match /entries/{entryId} {
-      // Allow anyone to read all entries
+    match /crop_data/{entryId} {
+      // Allow anyone to read the entries.
       allow get, list: if true;
 
-      // Allow the user to create a new entry if the userId matches their auth.uid or if the user is not signed in (anonymous)
-      allow create: if isSignedIn() ? request.resource.data.userId == request.auth.uid : request.resource.data.userId == "";
+      // Allow create if the user is not signed in or if the userId matches the authenticated user's ID.
+      allow create: if isSignedIn() ? (request.resource.data.userId == request.auth.uid && request.resource.data.id == entryId) || (request.resource.data.userId == "") : request.resource.data.userId == "" && request.resource.data.id == entryId;
 
-      // Allow the owner to update an existing entry. Enforce immutability on userId
-      allow update: if isExistingOwner(resource.data.userId) && (resource.data.userId == resource.data.userId);
+      // Only the owner can update or delete the entry, and the entry must exist.
+      allow update, delete: if isExistingOwner(resource.data.userId);
 
-      // Allow the owner to delete an existing entry
-      allow delete: if isExistingOwner(resource.data.userId);
+    }
+    // --- Helper Functions ---
 
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    // Checks if the user is signed in.
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-      // Check if the user is the owner of the entry and the document exists
-      function isExistingOwner(userId) {
-        return isSignedIn() && isOwner(userId) && resource != null;
-      }
+    // Checks if the user is the owner of the resource.
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
 
-      // Helper function to determine if the current user is the owner
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
+    // Checks if the user is the existing owner of the resource and the resource exists.
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
   }
 }
