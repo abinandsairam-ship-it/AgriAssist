@@ -2,8 +2,7 @@
 "use server";
 import type { Prediction } from '@/lib/definitions';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
-import { getDoctorsOpinion, type GetDoctorsOpinionOutput } from '@/ai/flows/get-doctors-opinion';
-
+import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 
 // Mock data for instant and reliable responses
 const mockPredictions = [
@@ -57,9 +56,8 @@ export async function getPrediction(
     return { error: 'Please upload or capture an image.' };
   }
 
-  // Use a simple hashing function on the image URI to pick a consistent mock
-  const hash = imageUri.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const mockResult = mockPredictions[hash % mockPredictions.length];
+  // Use timestamp to cycle through mock predictions for more dynamic results
+  const mockResult = mockPredictions[Date.now() % mockPredictions.length];
 
   const predictionResult: Prediction & { newPrediction: boolean } = {
     ...mockResult,
