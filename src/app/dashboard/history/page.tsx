@@ -18,9 +18,10 @@ export default function HistoryPage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // IMPORTANT: The query is memoized and only constructed when firestore and user.uid are available.
   const historyQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) {
+    // CRITICAL: Do not construct the query until the user is loaded and authenticated.
+    // If the query is null, useCollection will wait.
+    if (isUserLoading || !user?.uid) {
       return null;
     }
     return query(
@@ -29,7 +30,7 @@ export default function HistoryPage() {
       orderBy('timestamp', 'desc'),
       limit(20)
     );
-  }, [firestore, user?.uid]); // Dependency on user.uid ensures it re-runs when user logs in.
+  }, [firestore, user, isUserLoading]); // Depend on user and isUserLoading
 
   const {
     data: history,
@@ -37,9 +38,7 @@ export default function HistoryPage() {
     error,
   } = useCollection<HistoryItem>(historyQuery);
 
-  // The page is loading if the user is loading, OR if we have a user but their history is still loading.
-  const isLoading = isUserLoading || (user && isHistoryLoading);
-
+  // Show a top-level loader while waiting for auth state to resolve.
   if (isUserLoading) {
     return (
       <div className="flex justify-center items-center h-full p-8">
@@ -48,7 +47,7 @@ export default function HistoryPage() {
     );
   }
 
-  // If the user is not logged in after the loading state is resolved.
+  // Once auth is resolved, if there's no user, show the sign-in prompt.
   if (!user) {
     return (
       <div className="container mx-auto p-4 md:p-8">
@@ -76,6 +75,7 @@ export default function HistoryPage() {
     );
   }
 
+  // If we have a user, show the history or loading/empty/error states.
   return (
     <div className="container mx-auto p-4 md:p-8">
       <header className="mb-8">
@@ -87,7 +87,7 @@ export default function HistoryPage() {
         </p>
       </header>
 
-      {isLoading ? (
+      {isHistoryLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
@@ -95,6 +95,7 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="p-8 text-center text-destructive">
             <p>An error occurred while loading your history. Please try again later.</p>
+             <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
           </CardContent>
         </Card>
       ) : history && history.length > 0 ? (
