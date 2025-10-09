@@ -52,7 +52,7 @@ function ActivityHistoryList({ history }: { history: ActivityHistoryItem[] }) {
             <TableRow key={item.id}>
               <TableCell>
                 <Badge variant={getBadgeVariant(item.actionType)}>
-                  {item.actionType.replace('_', ' ')}
+                  {item.actionType.replace(/_/g, ' ')}
                 </Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">{item.details}</TableCell>
