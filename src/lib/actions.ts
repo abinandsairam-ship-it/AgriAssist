@@ -7,7 +7,7 @@ const mockPredictions: Omit<Prediction, 'timestamp' | 'imageUrl' | 'userId'>[] =
   {
     cropType: 'Tomato (Solanum lycopersicum)',
     condition: 'Late Blight (Phytophthora infestans)',
-    recommendation: 'Late blight is a serious fungal disease. Immediately remove and destroy infected leaves. Ensure proper spacing for air circulation. Apply a copper-based or systemic fungicide like Mancozeb or Chlorothalonil, following label instructions carefully. Avoid overhead watering.',
+    recommendation: "Doctor's Opinion: The image shows classic symptoms of Late Blight, a highly destructive fungal disease caused by Phytophthora infestans. Key indicators include large, dark, water-soaked lesions on leaves and stems, often with a white moldy growth on the underside in humid conditions. This disease can spread rapidly and lead to total crop loss if not managed aggressively.\n\nActionable Steps:\n1.  **Sanitation:** Immediately remove and destroy all infected plant parts. Do not compost them.\n2.  **Improve Airflow:** Prune lower leaves and ensure plants are spaced adequately to reduce humidity around the foliage.\n3.  **Fungicide Application:** A proactive fungicide program is critical. Apply a preventative spray of a copper-based fungicide or a systemic product like Mancozeb or Chlorothalonil. Alternate between different fungicide groups to prevent resistance. Follow label instructions precisely.\n4.  **Watering Practices:** Avoid overhead watering. Use drip irrigation or water at the base of the plant to keep leaves dry.",
     confidence: 0.92,
     recommendedMedicines: [{ name: 'Mancozeb Fungicide', url: '#', price: 28.50 }],
     relatedVideos: [{ title: 'Managing Tomato Late Blight', videoUrl: '#', thumbnailUrl: 'https://picsum.photos/seed/tomato-blight/400/225' }],
@@ -16,7 +16,7 @@ const mockPredictions: Omit<Prediction, 'timestamp' | 'imageUrl' | 'userId'>[] =
   {
     cropType: 'Corn (Zea mays)',
     condition: 'Northern Corn Leaf Blight (Exserohilum turcicum)',
-    recommendation: 'This fungal disease presents as long, elliptical, grayish-green or tan lesions. Use resistant hybrids if possible. Foliar fungicides like Azoxystrobin or Pyraclostrobin can be effective if applied early. Rotate crops and manage residue to reduce fungal survival.',
+    recommendation: "Doctor's Opinion: The analysis indicates the presence of Northern Corn Leaf Blight (NCLB), characterized by long, elliptical, grayish-green or tan lesions on the leaves. These lesions can merge, leading to significant loss of photosynthetic area, which can impact yield, especially if infection occurs before silking.\n\nActionable Steps:\n1.  **Resistant Hybrids:** For future plantings, select corn hybrids with genetic resistance to NCLB, which is the most effective management strategy.\n2.  **Fungicide Timing:** If the disease is present on one-third of the leaves and the crop is two weeks before or after tasseling, a foliar fungicide application is warranted. Products containing Azoxystrobin or Pyraclostrobin are effective.\n3.  **Crop Rotation & Tillage:** Rotate with non-host crops like soybeans or alfalfa. Tillage to bury infected crop residue can help reduce the fungal inoculum for the next season.",
     confidence: 0.88,
     recommendedMedicines: [{ name: 'Azoxystrobin 250 SC', url: '#', price: 45.00 }],
     relatedVideos: [{ title: 'Identifying Northern Corn Leaf Blight', videoUrl: '#', thumbnailUrl: 'https://picsum.photos/seed/corn-blight/400/225' }],
@@ -25,7 +25,7 @@ const mockPredictions: Omit<Prediction, 'timestamp' | 'imageUrl' | 'userId'>[] =
   {
     cropType: 'Potato (Solanum tuberosum)',
     condition: 'Healthy',
-    recommendation: 'The plant appears healthy with no visible signs of disease or pest infestation. Continue standard monitoring and good agricultural practices. Ensure consistent watering and balanced fertilization to maintain vigor.',
+    recommendation: "Doctor's Opinion: The plant appears to be in excellent health. The leaves are vibrant green, well-formed, and show no visible signs of stress, disease, or pest infestation. The overall structure is robust.\n\nActionable Steps:\n1.  **Maintain Monitoring:** Continue regular scouting for early signs of common potato issues like aphids, potato beetles, or early/late blight.\n2.  **Consistent Practices:** Maintain your current schedule of watering, fertilization, and hilling. Consistency is key to preventing stress.\n3.  **Preventative Measures:** Consider a light, preventative application of neem oil as a natural repellent for pests, and ensure good air circulation to discourage fungal growth.",
     confidence: 0.98,
     recommendedMedicines: [],
     relatedVideos: [{ title: 'Best Practices for Potato Farming', videoUrl: '#', thumbnailUrl: 'https://picsum.photos/seed/healthy-potato/400/225' }],
@@ -34,7 +34,7 @@ const mockPredictions: Omit<Prediction, 'timestamp' | 'imageUrl' | 'userId'>[] =
   {
     cropType: 'Wheat (Triticum aestivum)',
     condition: 'Powdery Mildew (Blumeria graminis)',
-    recommendation: 'Powdery mildew appears as white, talc-like powder on leaf surfaces. It thrives in high humidity and moderate temperatures. Apply a sulfur-based or triazole fungicide. Ensure good air circulation and avoid excessive nitrogen fertilization.',
+    recommendation: "Doctor's Opinion: The image displays a classic case of Powdery Mildew, identified by the white, talc-like fungal growth on the leaf surfaces. This disease inhibits photosynthesis and can lead to reduced grain fill and lower yields if it becomes severe, particularly on the upper leaves like the flag leaf.\n\nActionable Steps:\n1.  **Fungicide Application:** If the mildew is present on upper leaves during the flag leaf or heading stages, an application of a triazole fungicide (e.g., Propiconazole, Tebuconazole) or a strobilurin fungicide is recommended.\n2.  **Variety Selection:** In the future, choose wheat varieties with better genetic resistance to powdery mildew.\n3.  **Cultural Practices:** Avoid excessive nitrogen application, as this can promote lush, susceptible growth. If possible, wider row spacing can improve air circulation and reduce disease pressure.",
     confidence: 0.95,
     recommendedMedicines: [{ name: 'Propiconazole 25% EC', url: '#', price: 35.75 }],
     relatedVideos: [{ title: 'Controlling Powdery Mildew in Wheat', videoUrl: '#', thumbnailUrl: 'https://picsum.photos/seed/wheat-mildew/400/225' }],
