@@ -3,7 +3,6 @@ import type { Prediction } from '@/lib/definitions';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 
-// This function simulates a real-time prediction by cycling through mock data.
 export async function getPrediction(
   prevState: any,
   formData: FormData
@@ -18,15 +17,18 @@ export async function getPrediction(
   try {
     const aiResult = await getDoctorsOpinion({ photoDataUri: imageUri });
 
+    if (aiResult.crop === 'Not a plant') {
+        return { error: "The uploaded image does not appear to be a plant. Please try a different image." };
+    }
+
     const predictionResult: Prediction = {
       cropType: aiResult.crop,
       condition: aiResult.condition,
       recommendation: aiResult.recommendation,
       confidence: aiResult.confidence,
       timestamp: Date.now(),
-      imageUrl: imageUri, // Use the actual uploaded image for display
+      imageUrl: imageUri,
       userId: userId,
-      // These are added on the client-side for UI purposes
       recommendedMedicines: [],
       relatedVideos: [],
       weather: undefined,
@@ -35,7 +37,7 @@ export async function getPrediction(
     return predictionResult;
   } catch (e: any) {
     console.error("AI analysis failed:", e);
-    return { error: e.message || 'The AI analysis failed. Please try again with a clearer image.' };
+    return { error: e.message || 'The AI analysis failed. The model may be unavailable or the image could not be processed. Please try again later.' };
   }
 }
 

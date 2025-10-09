@@ -71,7 +71,7 @@ Generate only the JSON object based on the provided schemas. Do not include any 
         },
         { media: { url: photoDataUri } },
       ],
-      model: 'googleai/gemini-pro-vision',
+      model: 'googleai/gemini-1.5-flash-latest',
       output: {
         schema: GetDoctorsOpinionOutputSchema,
       },
