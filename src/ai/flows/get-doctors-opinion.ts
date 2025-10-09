@@ -11,6 +11,47 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
+// Mock search tool for demonstration purposes.
+const webSearch = ai.defineTool(
+  {
+    name: 'webSearch',
+    description: 'Performs a web search for agricultural information.',
+    inputSchema: z.object({
+      query: z.string().describe('The search query, e.g., "Tomato Late Blight symptoms"'),
+    }),
+    outputSchema: z.object({
+      results: z.array(
+        z.object({
+          title: z.string(),
+          url: z.string().url(),
+          snippet: z.string(),
+        })
+      ),
+    }),
+  },
+  async ({ query }) => {
+    // In a real application, this would call a search API (e.g., Google Search API).
+    // For this demo, we return mock data based on a common query.
+    if (query.toLowerCase().includes('late blight')) {
+      return {
+        results: [
+          {
+            title: 'Late Blight on Tomatoes | Cornell University',
+            url: 'https://www.gardening.cornell.edu/factsheets/vegetables/tomatolateblight.html',
+            snippet: 'Late blight is a destructive disease of tomatoes and potatoes... Symptoms include blighted leaves with dark, water-soaked spots, often with a pale green halo.',
+          },
+          {
+            title: 'Managing Late Blight in Organic Gardens - SARE',
+            url: 'https://www.sare.org/resources/managing-late-blight-in-organic-gardens/',
+            snippet: 'Prevention is key. Ensure good air circulation, avoid overhead watering, and apply copper-based fungicides as a preventative measure.',
+          },
+        ],
+      };
+    }
+    return { results: [] };
+  }
+);
+
 const GetDoctorsOpinionInputSchema = z.object({
   imageDescription: z.string().describe('A natural language description of a plant and its condition, derived from an image.'),
 });
@@ -81,36 +122,41 @@ export async function getDoctorsOpinion(
 
 const prompt = ai.definePrompt({
   name: 'getDoctorsOpinionPrompt',
+  tools: [webSearch],
   input: { schema: GetDoctorsOpinionInputSchema },
   output: { schema: GetDoctorsOpinionOutputSchema },
-  prompt: `You are a world-renowned agronomist writing a "Doctor's Opinion" for a farmer.
+  prompt: `You are a world-renowned agronomist providing a "Doctor's Opinion" for a farmer.
 
 You have been given the following description of a plant from an image:
 "{{{imageDescription}}}"
 
 Based on this description, perform the following tasks and generate a comprehensive JSON report.
 
-1.  **Identify Crop**: Determine the 'crop' type. If it's unclear, set it to "Unknown".
-2.  **Diagnose Condition**:
-    - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
-    - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' for healthy).
+1.  **Formulate a Hypothesis**: First, make a preliminary identification of the crop and its condition based on your expert knowledge.
 
-3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation report.
-    - **Disease Description**: Briefly explain what the condition is.
-    - **Severity & Symptoms**: Describe the severity and key symptoms the farmer should watch for.
-    - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
-    - **Preventive Measures**: Suggest actionable steps to prevent this issue in the future.
-    - **When to Consult an Expert**: Advise on when it's time to call a local plant doctor or agricultural specialist.
-    - If the condition is 'Healthy', provide advice on maintaining health and maximizing yield.
+2.  **Verify with Web Search**: Use the 'webSearch' tool to cross-reference your hypothesis. Search for the suspected condition to confirm symptoms, treatments, and scientific names from reliable agricultural websites.
 
-4.  **Recommend Medicines**:
-    - Create a list of 2-3 recommendedMedicines.
-    - If not 'Healthy', suggest specific, commonly available treatments (fungicides, pesticides, organic alternatives).
-    - If 'Healthy', return an empty array.
+3.  **Synthesize and Report**: Combine your expertise with the information from the web search to generate the final, validated JSON report.
 
-5.  **Find Related Videos**:
-    - Suggest 3 relatedVideos relevant to the crop and condition.
-    - Use placeholder thumbnails from picsum.photos with unique seeds.
+    - **Identify Crop**: Determine the 'crop' type. If unclear, set to "Unknown".
+    - **Diagnose Condition**:
+        - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
+        - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' for healthy).
+
+    - **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation.
+        - **Disease Description**: Briefly explain the condition, using info from the search to validate.
+        - **Severity & Symptoms**: Describe severity and key symptoms.
+        - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
+        - **Preventive Measures**: Suggest actionable steps for prevention.
+        - **When to Consult an Expert**: Advise on when to call a local specialist.
+        - If the condition is 'Healthy', provide advice on maintaining health.
+
+    - **Recommend Medicines**:
+        - If not 'Healthy', suggest 2-3 specific treatments. If 'Healthy', return an empty array.
+
+    - **Find Related Videos**:
+        - Suggest 3 relevant video URLs for the given crop and condition.
+        - Use placeholder thumbnails from picsum.photos with unique seeds.
 
 Generate the full JSON output based on the provided schemas. Return only the JSON object.
 `,
