@@ -67,11 +67,11 @@ const getDoctorsOpinionFlow = ai.defineFlow(
           text: `You are a world-renowned agronomist. Analyze the provided image and generate a JSON report with your "Doctor's Opinion".
 
 Your tasks:
-1.  **Identify Crop**: Determine the 'crop' type. If it's not a plant, set 'crop' to "Not a plant" and nothing else.
+1.  **Identify Crop**: Determine the 'crop' type. If it's not a plant, set 'crop' to "Not a plant" and all other fields to "N/A".
 2.  **Diagnose Condition**: Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy') and the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' if healthy).
 3.  **Write Recommendation**: Write a detailed, easy-to-understand 'recommendation'. Include a disease description, severity, symptoms visible, a treatment plan, and prevention measures.
 
-Generate only the JSON object based on the provided schemas.`,
+Generate only the JSON object based on the provided schemas. Do not include any other text or formatting.`,
         },
         { media: { url: photoDataUri } },
       ],

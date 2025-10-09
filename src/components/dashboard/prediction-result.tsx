@@ -67,7 +67,7 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
   }, [prediction, language]);
   
   const confidencePercent = Math.round((prediction.confidence || 0) * 100);
-  const isHealthy = (prediction.condition || '').toLowerCase() === 'healthy';
+  const isHealthy = (prediction.condition || '').toLowerCase().includes('healthy');
   const displayedCondition = translatedContent?.condition ?? prediction.condition;
   const displayedRecommendation = translatedContent?.recommendation ?? prediction.recommendation;
 
@@ -139,8 +139,7 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
         <CardFooter>
           <p className="text-xs text-muted-foreground">
             Prediction from{' '}
-            {new Date(prediction.timestamp).toLocaleString()}. This is a
-            demo prediction.
+            {new Date(prediction.timestamp).toLocaleString()}.
           </p>
         </CardFooter>
       </Card>
@@ -200,7 +199,6 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
                         <ShoppingCart className="mr-2 h-4 w-4" />Buy Now
                       </a>
                     </Button>
-                    <Button size="sm" variant="outline">Track Order</Button>
                   </div>
                 </div>
               ))}
