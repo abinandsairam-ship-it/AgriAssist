@@ -8,7 +8,7 @@ import { useUser } from '@/firebase';
 
 export function HeroSection() {
   const { t } = useTranslation();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
 
   return (
@@ -22,7 +22,7 @@ export function HeroSection() {
             {t('hero.description')}
           </p>
           <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href={user ? "/dashboard" : "/sign-in"}>{t('hero.cta')}</Link>
+            <Link href={!isUserLoading && user ? "/dashboard" : "/sign-in"}>{t('hero.cta')}</Link>
           </Button>
         </div>
       </div>

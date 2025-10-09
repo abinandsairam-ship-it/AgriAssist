@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -35,11 +35,22 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
+  if (isUserLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (user) {
+    router.push('/dashboard');
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +61,7 @@ export default function SignInPage() {
         title: 'Signing In...',
         description: 'You will be redirected shortly.',
       });
+      // The onAuthStateChanged listener in the provider will handle redirection
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -69,6 +81,7 @@ export default function SignInPage() {
         title: 'Account Created!',
         description: 'Signing you in...',
       });
+       // The onAuthStateChanged listener will handle redirection
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -88,6 +101,7 @@ export default function SignInPage() {
         title: 'Signing in as Guest...',
         description: 'You will be redirected to the dashboard.',
       });
+       // The onAuthStateChanged listener will handle redirection
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -98,13 +112,6 @@ export default function SignInPage() {
     }
   };
   
-  if (isUserLoading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
