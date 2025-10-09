@@ -2,7 +2,7 @@
 "use server";
 import type { Prediction } from '@/lib/definitions';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
-import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
+import { getDoctorsOpinion, type GetDoctorsOpinionOutput } from '@/ai/flows/get-doctors-opinion';
 
 
 export async function getPrediction(
@@ -17,24 +17,36 @@ export async function getPrediction(
   }
 
   try {
+    // Step 1: Get a simple, descriptive diagnosis from the image.
     const diagnosis = await diagnosePlant({ photoDataUri: imageUri });
 
-    if (!diagnosis || !diagnosis.cropType || !diagnosis.condition || diagnosis.cropType.toLowerCase() === 'unknown') {
+    if (!diagnosis || !diagnosis.description) {
       return {
-        error: diagnosis.condition || 'Could not identify the crop. Please try a clearer image.',
+        error: 'Could not analyze the image. Please try a clearer picture.',
       };
     }
 
-    const doctorsOpinion = await getDoctorsOpinion({
-      crop: diagnosis.cropType,
-      condition: diagnosis.condition,
-      conditionScientific: diagnosis.conditionScientific,
+    if (diagnosis.description.toLowerCase().includes("not a plant") || diagnosis.description.toLowerCase().includes("unknown")) {
+        return {
+            error: "Could not identify a plant in the image. Please try again with a clearer picture of a plant."
+        }
+    }
+
+
+    // Step 2: Use the description to generate the detailed "Doctor's Opinion".
+    const doctorsOpinion: GetDoctorsOpinionOutput = await getDoctorsOpinion({
+        imageDescription: diagnosis.description,
     });
+    
+    if (!doctorsOpinion || !doctorsOpinion.crop || doctorsOpinion.crop.toLowerCase() === 'unknown') {
+        return { error: "AI could not identify the crop in the image. Please try again." };
+    }
+
 
     const predictionResult: Prediction & { newPrediction: boolean } = {
-      cropType: diagnosis.cropType,
-      condition: `${diagnosis.condition} (${diagnosis.conditionScientific})`,
-      confidence: 0.98, // Placeholder confidence, as model doesn't return it
+      cropType: doctorsOpinion.crop,
+      condition: `${doctorsOpinion.condition} (${doctorsOpinion.conditionScientific})`,
+      confidence: 0.98, // Placeholder confidence
       imageUrl: imageUri,
       timestamp: Date.now(),
       recommendation: doctorsOpinion.recommendation,
@@ -51,7 +63,7 @@ export async function getPrediction(
     return predictionResult;
 
   } catch (e: any) {
-    console.error("Error in getPrediction flow:", e.message);
+    console.error("Error in getPrediction flow:", e);
     return { error: "An unexpected error occurred during analysis. The AI model may be offline or experiencing issues." };
   }
 }

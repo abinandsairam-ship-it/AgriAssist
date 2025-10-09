@@ -21,9 +21,7 @@ const DiagnosePlantInputSchema = z.object({
 export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
-  cropType: z.string().describe("The type of crop identified, or 'Unknown' if not identifiable."),
-  condition: z.string().describe("The common name of the diagnosed condition (e.g., 'Healthy', 'Late Blight')."),
-  conditionScientific: z.string().describe("The scientific (biological) name of the condition (e.g., 'Phytophthora infestans', or 'N/A' if healthy)."),
+  description: z.string().describe("A simple, natural language description of the plant and its condition (e.g., 'A tomato plant with yellow leaves and brown spots.' or 'This is not a plant.')."),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
@@ -43,17 +41,14 @@ const diagnosePlantFlow = ai.defineFlow(
   async ({ photoDataUri }) => {
     const llmResponse = await ai.generate({
       prompt: [
-        {text: `You are an expert agronomist. Analyze the provided image.
-- Identify the crop. If you cannot, set cropType to "Unknown".
-- Identify the health condition.
-- If a disease or pest is present, provide its common name for 'condition' and its scientific name for 'conditionScientific'. Example: condition: "Late Blight", conditionScientific: "Phytophthora infestans".
-- If the plant is healthy, set 'condition' to "Healthy" and 'conditionScientific' to "N/A".
-- If you are uncertain, provide the most likely possibility and explain the uncertainty in the condition field.
-
-Return only the JSON object. Do not add any other text or explanations.`},
+        {text: `Analyze the provided image and describe what you see in one simple sentence.
+- If it is a plant, identify the plant and its most obvious health characteristic. For example: "A tomato plant with yellow leaves" or "A healthy-looking corn stalk".
+- If you are unsure, say "An unknown plant with...".
+- If the image does not contain a plant, say "This is not a plant."
+- Do not use JSON, just return the single sentence.`},
         {media: { url: photoDataUri } },
       ],
-      model: 'gemini-1.5-pro-latest',
+      model: 'gemini-1.5-flash-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
       },
