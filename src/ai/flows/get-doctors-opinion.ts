@@ -12,14 +12,22 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const GetDoctorsOpinionInputSchema = z.object({
-  imageDescription: z.string().describe('A natural language description of a plant and its condition, derived from an image.'),
+  photoDataUri: z
+    .string()
+    .describe(
+      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
 });
 export type GetDoctorsOpinionInput = z.infer<
   typeof GetDoctorsOpinionInputSchema
 >;
 
 const GetDoctorsOpinionOutputSchema = z.object({
-  crop: z.string().describe("The type of crop identified, or 'Unknown' if not identifiable."),
+  crop: z
+    .string()
+    .describe(
+      "The type of crop identified. If the image is not a plant, return 'Not a plant'."
+    ),
   condition: z
     .string()
     .describe(
@@ -42,10 +50,7 @@ const GetDoctorsOpinionOutputSchema = z.object({
         price: z
           .number()
           .describe('An approximate price in USD for the medicine.'),
-        url: z
-          .string()
-          .url()
-          .describe('A placeholder URL to a product page.'),
+        url: z.string().url().describe('A placeholder URL to a product page.'),
       })
     )
     .describe(
@@ -67,7 +72,9 @@ const GetDoctorsOpinionOutputSchema = z.object({
           .describe('A placeholder URL to a video.'),
       })
     )
-    .describe('A list of 3 relevant video URLs for the given crop and condition.'),
+    .describe(
+      'A list of 3 relevant video URLs for the given crop and condition. If the crop is healthy, provide videos about general maintenance.'
+    ),
 });
 export type GetDoctorsOpinionOutput = z.infer<
   typeof GetDoctorsOpinionOutputSchema
@@ -79,49 +86,47 @@ export async function getDoctorsOpinion(
   return getDoctorsOpinionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'getDoctorsOpinionPrompt',
-  input: { schema: GetDoctorsOpinionInputSchema },
-  output: { schema: GetDoctorsOpinionOutputSchema },
-  prompt: `You are a world-renowned agronomist providing a "Doctor's Opinion" for a farmer.
-
-You have been given the following description of a plant from an image:
-"{{{imageDescription}}}"
-
-Based on this description and your expert knowledge, perform the following tasks and generate a comprehensive JSON report.
-
-1.  **Identify Crop**: Determine the 'crop' type. If unclear, set to "Unknown".
-2.  **Diagnose Condition**:
-    - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
-    - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' for healthy).
-
-3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation.
-    - **Disease Description**: Briefly explain the condition.
-    - **Severity & Symptoms**: Describe severity and key symptoms.
-    - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
-    - **Preventive Measures**: Suggest actionable steps for prevention.
-    - **When to Consult an Expert**: Advise on when to call a local specialist.
-    - If the condition is 'Healthy', provide advice on maintaining health.
-
-4.  **Recommend Medicines**:
-    - If not 'Healthy', suggest 2-3 specific treatments. If 'Healthy', return an empty array.
-
-5.  **Find Related Videos**:
-    - Suggest 3 relevant video URLs for the given crop and condition.
-    - Use placeholder thumbnails from picsum.photos with unique seeds.
-
-Generate the full JSON output based on the provided schemas. Return only the JSON object.
-`,
-});
-
 const getDoctorsOpinionFlow = ai.defineFlow(
   {
     name: 'getDoctorsOpinionFlow',
     inputSchema: GetDoctorsOpinionInputSchema,
     outputSchema: GetDoctorsOpinionOutputSchema,
   },
-  async input => {
-    const { output } = await prompt(input);
-    return output!;
+  async ({ photoDataUri }) => {
+    const llmResponse = await ai.generate({
+      prompt: [
+        {
+          text: `You are a world-renowned agronomist providing a "Doctor's Opinion" for a farmer.
+
+Analyze the provided image and your expert knowledge to perform the following tasks and generate a comprehensive JSON report.
+
+1.  **Identify Crop**: Determine the 'crop' type. If the image does not contain a plant, set 'crop' to "Not a plant" and return immediately.
+2.  **Diagnose Condition**:
+    - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
+    - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', or 'N/A' for healthy).
+3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation.
+    - **Disease Description**: Briefly explain the condition.
+    - **Severity & Symptoms**: Describe severity and key symptoms visible in the image.
+    - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
+    - **Preventive Measures**: Suggest actionable steps for prevention.
+    - **When to Consult an Expert**: Advise on when to call a local specialist.
+    - If the condition is 'Healthy', provide advice on maintaining health.
+4.  **Recommend Medicines**:
+    - If not 'Healthy', suggest 2-3 specific commercial treatments. If 'Healthy', return an empty array.
+5.  **Find Related Videos**:
+    - Suggest 3 relevant video URLs for the given crop and condition. If healthy, find videos on general maintenance for that crop.
+    - Use placeholder thumbnails from picsum.photos with unique seeds.
+
+Generate the full JSON output based on the provided schemas. Return only the JSON object.`,
+        },
+        { media: { url: photoDataUri } },
+      ],
+      model: 'gemini-1.5-pro-latest',
+      output: {
+        schema: GetDoctorsOpinionOutputSchema,
+      },
+    });
+
+    return llmResponse.output()!;
   }
 );

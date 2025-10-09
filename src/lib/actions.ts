@@ -1,7 +1,6 @@
 
 'use server';
 import type { Prediction } from '@/lib/definitions';
-import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
 
@@ -17,15 +16,12 @@ export async function getPrediction(
   }
 
   try {
-    // Step 1: Get a simple description of the plant from the image.
-    const diagnosis = await diagnosePlant({ photoDataUri: imageUri });
+    // A single, robust call to the AI model
+    const opinion = await getDoctorsOpinion({ photoDataUri: imageUri });
 
-    if (diagnosis.description.toLowerCase().includes('not a plant')) {
+    if (opinion.crop.toLowerCase() === 'not a plant') {
         return { error: "The uploaded image does not appear to be a plant. Please try another image." };
     }
-
-    // Step 2: Get the detailed "Doctor's Opinion" based on the description.
-    const opinion = await getDoctorsOpinion({ imageDescription: diagnosis.description });
 
     const predictionResult: Prediction = {
       cropType: opinion.crop,
