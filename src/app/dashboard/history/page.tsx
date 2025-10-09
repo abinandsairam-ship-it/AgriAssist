@@ -106,7 +106,7 @@ export default function HistoryPage() {
 
   const historyQuery = useMemoFirebase(() => {
     // This is the key fix: DO NOT create a query until the user is loaded and available.
-    if (isUserLoading || !user?.uid) {
+    if (!firestore || !user?.uid) {
       return null;
     }
     return query(
@@ -114,12 +114,12 @@ export default function HistoryPage() {
       where('userId', '==', user.uid),
       orderBy('timestamp', 'desc')
     );
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, user?.uid]);
 
   const { data: history, isLoading: isHistoryLoading, error } =
     useCollection<ActivityHistoryItem>(historyQuery);
 
-  const isLoading = isUserLoading || isHistoryLoading;
+  const isLoading = isUserLoading || (user && isHistoryLoading);
 
   if (isUserLoading) {
       return (
