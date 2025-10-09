@@ -6,10 +6,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    allowedDevOrigins: [
-      'https://6000-firebase-studio-1758810223286.cluster-73qgvk7hjjadkrjeyexca5ivva.cloudworkstations.dev',
-    ],
   },
+  allowedDevOrigins: [
+      'https://6000-firebase-studio-1758810223286.cluster-73qgvk7hjjadkrjeyexca5ivva.cloudworkstations.dev',
+  ],
   eslint: {
     ignoreDuringBuilds: true,
   },
