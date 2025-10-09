@@ -88,7 +88,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
         <p className="text-lg font-semibold">{displayedCondition}</p>
       </div>
     );
-  }
+  };
 
   return (
     <div className="space-y-8">
