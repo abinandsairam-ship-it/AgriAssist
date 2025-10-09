@@ -15,16 +15,12 @@ import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 3000;
-
 export default function CropDetectionPage() {
   const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
   const [isPending, startTransition] = useTransition();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [finalError, setFinalError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,9 +65,9 @@ export default function CropDetectionPage() {
     }
   }, [toast]);
   
-  const handleFormSubmit = useCallback((imageUri: string, currentTry = 1) => {
+  const handleFormSubmit = useCallback((imageUri: string) => {
     setPredictionResult(undefined);
-    setFinalError(null);
+    setError(null);
     const formData = new FormData();
     formData.append('imageUri', imageUri);
     if (user?.uid) {
@@ -82,20 +78,11 @@ export default function CropDetectionPage() {
       const result = await getPrediction(null, formData);
       
       if (result && 'error' in result && result.error) {
-        if (currentTry < MAX_RETRIES) {
-          setRetryCount(currentTry);
-          setTimeout(() => {
-            handleFormSubmit(imageUri, currentTry + 1);
-          }, RETRY_DELAY); // Retry after delay
-        } else {
-          setFinalError(`AI analysis failed after ${MAX_RETRIES} attempts. The AI model server might be down or experiencing high traffic. Please try again later. Error: ${result.error}`);
-          setPredictionResult(undefined);
-          setRetryCount(0);
-        }
+        setError(result.error);
+        setPredictionResult(undefined);
       } else if (result && 'cropType' in result) {
         setPredictionResult(result);
-        setRetryCount(0);
-        setFinalError(null);
+        setError(null);
         toast({
           title: 'Success!',
           description: 'Your crop has been analyzed.',
@@ -104,12 +91,14 @@ export default function CropDetectionPage() {
         if (user && firestore) {
           // Save to Firestore
           const currentPrediction = result as Prediction;
+          // Exclude properties that are not in the Entry entity
           const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
           const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
           
           const dataToSave = {
             ...historyData,
-            imageUrl: placeholderUrl,
+            imageUrl: placeholderUrl, // Use a placeholder for storage
+            condition: currentPrediction.condition.split(' (')[0], // Save only common name
           };
 
           const cropDataCollection = collection(firestore, 'crop_data');
@@ -152,19 +141,6 @@ export default function CropDetectionPage() {
 
   const renderAnalysisState = () => {
     if (isPending) {
-      if (retryCount > 0) {
-        return (
-          <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
-            <CardHeader>
-              <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
-              <CardTitle>Analysis Failed, Retrying...</CardTitle>
-              <CardDescription>
-                Attempting to reconnect to the AI model. Please wait. (Attempt {retryCount + 1})
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        );
-      }
       return (
         <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
           <CardHeader>
@@ -178,14 +154,14 @@ export default function CropDetectionPage() {
       );
     }
 
-    if (finalError) {
+    if (error) {
       return (
         <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed border-destructive">
           <CardHeader>
             <AlertTriangle className="mx-auto h-16 w-16 text-destructive" />
             <CardTitle>Analysis Failed</CardTitle>
             <CardDescription className="text-destructive">
-              {finalError}
+              {error}
             </CardDescription>
           </CardHeader>
         </Card>

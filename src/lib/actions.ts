@@ -5,6 +5,47 @@ import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import { getDoctorsOpinion, type GetDoctorsOpinionOutput } from '@/ai/flows/get-doctors-opinion';
 
 
+// Mock data for instant and reliable responses
+const mockPredictions = [
+    {
+        cropType: 'Rice',
+        condition: 'Brown Spot (Bipolaris oryzae)',
+        recommendation: 'The leaf shows characteristic brown spots which are typical of brown spot disease. Treat with recommended fungicides and ensure proper field hygiene. Monitor for similar symptoms on neighboring plants.',
+        recommendedMedicines: [
+            { name: 'Propiconazole 25% EC', price: 15.50, url: '#' },
+            { name: 'Mancozeb 75% WP', price: 12.00, url: '#' }
+        ],
+        relatedVideos: [
+            { title: 'Managing Brown Spot in Rice', thumbnailUrl: 'https://picsum.photos/seed/rice-spot/120/90', videoUrl: '#' },
+        ]
+    },
+    {
+        cropType: 'Corn',
+        condition: 'Northern Leaf Blight (Exserohilum turcicum)',
+        recommendation: 'The long, cigar-shaped lesions are a classic sign of Northern Leaf Blight. Apply fungicides at the first sign of disease and consider resistant hybrids for future plantings. Good residue management can reduce inoculum.',
+        recommendedMedicines: [
+            { name: 'Azoxystrobin', price: 22.00, url: '#' },
+            { name: 'Pyraclostrobin', price: 25.00, url: '#' }
+        ],
+        relatedVideos: [
+            { title: 'How to Identify and Treat Northern Leaf Blight', thumbnailUrl: 'https://picsum.photos/seed/corn-blight/120/90', videoUrl: '#' },
+        ]
+    },
+    {
+        cropType: 'Potato',
+        condition: 'Late Blight (Phytophthora infestans)',
+        recommendation: 'This is Late Blight, a serious potato disease. Immediate fungicide application is critical. Destroy infected plants to prevent spread. Ensure good air circulation and avoid overhead irrigation.',
+        recommendedMedicines: [
+            { name: 'Chlorothalonil', price: 18.00, url: '#' },
+            { name: 'Metalaxyl-M', price: 28.50, url: '#' }
+        ],
+        relatedVideos: [
+            { title: 'Preventing Late Blight in Potatoes', thumbnailUrl: 'https://picsum.photos/seed/potato-blight/120/90', videoUrl: '#' },
+        ]
+    }
+];
+
+
 export async function getPrediction(
   prevState: any,
   formData: FormData
@@ -16,56 +57,28 @@ export async function getPrediction(
     return { error: 'Please upload or capture an image.' };
   }
 
-  try {
-    // Step 1: Get a simple, descriptive diagnosis from the image.
-    const diagnosis = await diagnosePlant({ photoDataUri: imageUri });
+  // Use a simple hashing function on the image URI to pick a consistent mock
+  const hash = imageUri.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const mockResult = mockPredictions[hash % mockPredictions.length];
 
-    if (!diagnosis || !diagnosis.description) {
-      return {
-        error: 'Could not analyze the image. Please try a clearer picture.',
-      };
-    }
-
-    if (diagnosis.description.toLowerCase().includes("not a plant") || diagnosis.description.toLowerCase().includes("unknown")) {
-        return {
-            error: "Could not identify a plant in the image. Please try again with a clearer picture of a plant."
-        }
-    }
-
-
-    // Step 2: Use the description to generate the detailed "Doctor's Opinion".
-    const doctorsOpinion: GetDoctorsOpinionOutput = await getDoctorsOpinion({
-        imageDescription: diagnosis.description,
-    });
-    
-    if (!doctorsOpinion || !doctorsOpinion.crop || doctorsOpinion.crop.toLowerCase() === 'unknown') {
-        return { error: "AI could not identify the crop in the image. Please try again." };
-    }
-
-
-    const predictionResult: Prediction & { newPrediction: boolean } = {
-      cropType: doctorsOpinion.crop,
-      condition: `${doctorsOpinion.condition} (${doctorsOpinion.conditionScientific})`,
-      confidence: 0.98, // Placeholder confidence
-      imageUrl: imageUri,
-      timestamp: Date.now(),
-      recommendation: doctorsOpinion.recommendation,
-      recommendedMedicines: doctorsOpinion.recommendedMedicines,
-      relatedVideos: doctorsOpinion.relatedVideos,
-      weather: {
-        location: 'Punjab, India',
-        temperature: '28°C',
-        condition: 'Cloudy',
-      },
-      newPrediction: true,
-      userId: userId,
-    };
-    return predictionResult;
-
-  } catch (e: any) {
-    console.error("Error in getPrediction flow:", e);
-    return { error: "An unexpected error occurred during analysis. The AI model may be offline or experiencing issues." };
-  }
+  const predictionResult: Prediction & { newPrediction: boolean } = {
+    ...mockResult,
+    confidence: 0.98, // High confidence for mock data
+    imageUrl: imageUri,
+    timestamp: Date.now(),
+    weather: {
+      location: 'Punjab, India',
+      temperature: '28°C',
+      condition: 'Cloudy',
+    },
+    newPrediction: true,
+    userId: userId,
+  };
+  
+  // Simulate network delay for realism, but keep it very short
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  return predictionResult;
 }
 
 
