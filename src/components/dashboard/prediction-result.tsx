@@ -56,7 +56,6 @@ export function PredictionResult({ result }: PredictionResultProps) {
     });
   }, [currentPrediction, language]);
 
-
   if (!currentPrediction) {
     return (
       <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
@@ -210,7 +209,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardHeader className="flex flex-row items-center gap-4">
             <Video className="h-6 w-6 text-primary" />
             <CardTitle>Related Videos</CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent>
             <div className="space-y-4">
               {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
