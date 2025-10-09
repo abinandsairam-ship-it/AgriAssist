@@ -90,12 +90,12 @@ You have been given the following description of a plant from an image:
 
 Based on this description, perform the following tasks and generate a comprehensive JSON report.
 
-1.  **Identify Crop**: Determine the `crop` type. If it's unclear, set it to "Unknown".
+1.  **Identify Crop**: Determine the crop type. If it's unclear, set it to "Unknown".
 2.  **Diagnose Condition**:
-    - Determine the common `condition` name (e.g., 'Late Blight', 'Healthy').
-    - Determine the `conditionScientific` name (e.g., 'Phytophthora infestans', 'N/A' for healthy).
+    - Determine the common condition name (e.g., 'Late Blight', 'Healthy').
+    - Determine the conditionScientific name (e.g., 'Phytophthora infestans', 'N/A' for healthy).
 
-3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand `recommendation` report.
+3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation report.
     - **Disease Description**: Briefly explain what the condition is.
     - **Severity & Symptoms**: Describe the severity and key symptoms the farmer should watch for.
     - **Treatment & Management**: Provide a clear, step-by-step treatment plan.
@@ -104,12 +104,12 @@ Based on this description, perform the following tasks and generate a comprehens
     - If the condition is 'Healthy', provide advice on maintaining health and maximizing yield.
 
 4.  **Recommend Medicines**:
-    - Create a list of 2-3 `recommendedMedicines`.
+    - Create a list of 2-3 recommendedMedicines.
     - If not 'Healthy', suggest specific, commonly available treatments (fungicides, pesticides, organic alternatives).
     - If 'Healthy', return an empty array.
 
 5.  **Find Related Videos**:
-    - Suggest 3 `relatedVideos` relevant to the crop and condition.
+    - Suggest 3 relatedVideos relevant to the crop and condition.
     - Use placeholder thumbnails from picsum.photos with unique seeds.
 
 Generate the full JSON output based on the provided schemas. Return only the JSON object.
