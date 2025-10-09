@@ -49,7 +49,7 @@ const diagnosePlantFlow = ai.defineFlow(
 - If the plant is healthy, set 'condition' to "Healthy" and 'conditionScientific' to "N/A".
 - If you are uncertain, provide the most likely possibility and explain the uncertainty in the condition field.
 
-Do not add any extra explanations. Return only the JSON object.`,
+Return only the JSON object. Do not add any other text or explanations.`,
       model: 'gemini-1.5-pro-latest',
       output: {
         schema: DiagnosePlantOutputSchema,
@@ -62,4 +62,3 @@ Do not add any extra explanations. Return only the JSON object.`,
     return llmResponse.output()!;
   }
 );
-
