@@ -28,7 +28,6 @@ type TranslatedContent = {
   recommendation: string;
 };
 
-// This is the placeholder component shown when no analysis has been run yet.
 function AwaitingAnalysis() {
   return (
     <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
@@ -43,15 +42,14 @@ function AwaitingAnalysis() {
   );
 }
 
-// This is the main component that displays the full prediction result.
 function PredictionDisplay({ prediction }: { prediction: Prediction }) {
   const { language, setLanguage } = useLanguage();
   const [isTranslating, startTransition] = React.useTransition();
   const [translatedContent, setTranslatedContent] = React.useState<TranslatedContent | null>(null);
 
   React.useEffect(() => {
-    if (language === 'en') {
-      setTranslatedContent(null); // Clear translations if switching back to English
+    if (language === 'en' || !prediction.condition || !prediction.recommendation) {
+      setTranslatedContent(null);
       return;
     }
 
@@ -68,8 +66,8 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
     });
   }, [prediction, language]);
   
-  const confidencePercent = Math.round(prediction.confidence * 100);
-  const isHealthy = prediction.condition.toLowerCase() === 'healthy';
+  const confidencePercent = Math.round((prediction.confidence || 0) * 100);
+  const isHealthy = (prediction.condition || '').toLowerCase() === 'healthy';
   const displayedCondition = translatedContent?.condition ?? prediction.condition;
   const displayedRecommendation = translatedContent?.recommendation ?? prediction.recommendation;
 
@@ -96,19 +94,23 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-6">
           <div className="relative aspect-video rounded-lg overflow-hidden border">
-            <Image
-              src={prediction.imageUrl}
-              alt="Analyzed crop"
-              fill
-              className="object-cover"
-            />
+            {prediction.imageUrl ? (
+              <Image
+                src={prediction.imageUrl}
+                alt="Analyzed crop"
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <Skeleton className="w-full h-full" />
+            )}
           </div>
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
                 Crop Type
               </h3>
-              <p className="text-lg font-semibold">{prediction.cropType}</p>
+              <p className="text-lg font-semibold">{prediction.cropType || 'N/A'}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
@@ -166,22 +168,24 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Stethoscope className="h-6 w-6 text-primary" />
-          <CardTitle>Doctor's Opinion</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{displayedRecommendation}</p>}
-        </CardContent>
-      </Card>
+      {prediction.recommendation && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4">
+            <Stethoscope className="h-6 w-6 text-primary" />
+            <CardTitle>Doctor's Opinion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{displayedRecommendation}</p>}
+          </CardContent>
+        </Card>
+      )}
       
       {!isHealthy && prediction.recommendedMedicines && prediction.recommendedMedicines.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <ShoppingCart className="h-6 w-6 text-primary" />
             <CardTitle>Recommended Medicines</CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {prediction.recommendedMedicines.map((med: RecommendedMedicine) => (
@@ -191,8 +195,12 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
                     <p className="text-sm text-muted-foreground">Price: ${med.price.toFixed(2)}</p>
                   </div>
                   <div className='flex gap-2'>
-                  <Button size="sm"><ShoppingCart className="mr-2 h-4 w-4" />Buy Now</Button>
-                  <Button size="sm" variant="outline">Track Order</Button>
+                    <Button asChild size="sm" onClick={() => window.open(med.url, '_blank')}>
+                      <a href={med.url} target="_blank" rel="noopener noreferrer">
+                        <ShoppingCart className="mr-2 h-4 w-4" />Buy Now
+                      </a>
+                    </Button>
+                    <Button size="sm" variant="outline">Track Order</Button>
                   </div>
                 </div>
               ))}
@@ -206,16 +214,16 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
           <CardHeader className="flex flex-row items-center gap-4">
             <Video className="h-6 w-6 text-primary" />
             <CardTitle>Related Videos</CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {prediction.relatedVideos.map((video: RelatedVideo) => (
-                <div key={video.title} className="flex items-center gap-4 p-2 rounded-md border">
+                <a key={video.title} href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-2 rounded-md border hover:bg-muted/50">
                   <Image src={video.thumbnailUrl} alt={video.title} width={120} height={90} className="rounded-md object-cover" />
                   <div>
-                    <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">{video.title}</a>
+                    <p className="font-semibold hover:underline">{video.title}</p>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </CardContent>
@@ -225,15 +233,13 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
   );
 }
 
-// The main export component that decides which view to show.
-export function PredictionResult({ result }: PredictionResultProps) {
-  // Determine if the result is a valid prediction.
-  const currentPrediction = result && "condition" in result ? result : null;
 
-  if (currentPrediction) {
-    return <PredictionDisplay prediction={currentPrediction} />;
-  }
-  
-  // If there's no valid prediction, show the placeholder.
-  return <AwaitingAnalysis />;
+export function PredictionResult({ result }: PredictionResultProps) {
+    if (result && "condition" in result) {
+      return <PredictionDisplay prediction={result} />;
+    }
+    
+    return <AwaitingAnalysis />;
 }
+
+    
