@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useEffect, useTransition } from 'react';
 import Image from 'next/image';
@@ -210,7 +209,7 @@ export function PredictionResult({ result }: PredictionResultProps) {
           <CardHeader className="flex flex-row items-center gap-4">
             <Video className="h-6 w-6 text-primary" />
             <CardTitle>Related Videos</CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {currentPrediction.relatedVideos.map((video: RelatedVideo) => (
