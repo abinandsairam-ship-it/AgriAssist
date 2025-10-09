@@ -21,18 +21,29 @@ export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
   cropType: z.string().describe('The identified name of the crop.'),
-  condition: z.string().describe('The general condition of the plant (e.g., Healthy, Late Blight).'),
-  diseaseCommonName: z.string().optional().describe('The common name of the identified disease.'),
-  diseaseBiologicalName: z.string().optional().describe('The biological (Latin) name of the identified disease.'),
+  condition: z
+    .string()
+    .describe(
+      'The general condition of the plant (e.g., Healthy, Late Blight).'
+    ),
+  diseaseCommonName: z
+    .string()
+    .optional()
+    .describe('The common name of the identified disease.'),
+  diseaseBiologicalName: z
+    .string()
+    .optional()
+    .describe('The biological (Latin) name of the identified disease.'),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
 export async function diagnosePlant(
   input: DiagnosePlantInput
-): Promise<DiagnosePlantOutput> {
+): Promise<DiagnosePlantOutput & { confidence: number }> {
   const result = await diagnosePlantFlow(input);
   return { ...result, confidence: 0.95 }; // Add default confidence
 }
+
 
 const searchWebForDisease = ai.defineTool(
   {
