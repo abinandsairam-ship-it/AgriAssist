@@ -21,16 +21,17 @@ const DiagnosePlantInputSchema = z.object({
 export type DiagnosePlantInput = z.infer<typeof DiagnosePlantInputSchema>;
 
 const DiagnosePlantOutputSchema = z.object({
-  analysis: z.string().describe('The final analysis in the specified format.'),
+  cropType: z.string().describe("The type of crop identified, or 'Unknown' if not identifiable."),
+  condition: z.string().describe("The diagnosed condition of the crop (e.g., 'Healthy', 'Late Blight', 'Pest-attacked'), or a reason for uncertainty."),
 });
 export type DiagnosePlantOutput = z.infer<typeof DiagnosePlantOutputSchema>;
 
 export async function diagnosePlant(
   input: DiagnosePlantInput
-): Promise<DiagnosePlantOutput & { confidence: number }> {
-  const result = await diagnosePlantFlow(input);
-  return { ...result, confidence: 0.95 }; // Add default confidence
+): Promise<DiagnosePlantOutput> {
+  return diagnosePlantFlow(input);
 }
+
 
 const diagnosePlantFlow = ai.defineFlow(
   {
@@ -40,25 +41,17 @@ const diagnosePlantFlow = ai.defineFlow(
   },
   async ({ photoDataUri }) => {
     const llmResponse = await ai.generate({
-      prompt: `Identify the disease and crop from the submitted image.
-Respond strictly in the format:
-"Disease: [Common Name] ([Biological Name])
-Crop: [Crop Name]"
+      prompt: `You are an expert agronomist. Identify the crop and its condition from the provided image.
+- If you can identify the crop and it appears healthy, set condition to "Healthy".
+- If you can identify a disease or pest, set the condition to the common name of that issue (e.g., "Late Blight", "Aphid Infestation").
+- If you cannot identify the crop or disease, set cropType to "Unknown" and condition to "Unable to determine. Please provide a clearer image."
 
-Example:
-"Disease: Brown Spot (Bipolaris oryzae)
-Crop: Rice"
+Do not add any extra explanations.
 
-Use this format ONLY. If uncertain or unclear, reply ONLY with:
-"Unknown disease. Please provide clearer image or additional information."
-
-Cross-check with multiple authoritative agricultural sources for accuracy before responding.
 Photo: {{media url=photoDataUri}}`,
       model: 'gemini-1.5-pro-latest',
       output: {
-        schema: z.object({
-          analysis: z.string(),
-        }),
+        schema: DiagnosePlantOutputSchema,
       },
     });
 

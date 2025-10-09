@@ -5,24 +5,6 @@ import { getDoctorsOpinion } from '@/ai/flows/get-doctors-opinion';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant-flow';
 import type { Prediction } from '@/lib/definitions';
 
-function parseAnalysis(analysis: string): { cropType: string; condition: string } {
-  if (analysis.startsWith('Unknown disease')) {
-    return {
-      cropType: 'Unknown',
-      condition: 'Unknown disease. Please provide clearer image or additional information.',
-    };
-  }
-
-  const diseaseMatch = analysis.match(/Disease: (.*)/);
-  const cropMatch = analysis.match(/Crop: (.*)/);
-
-  const condition = diseaseMatch ? diseaseMatch[1].trim() : 'Could not determine disease';
-  const cropType = cropMatch ? cropMatch[1].trim() : 'Could not determine crop';
-
-  return { cropType, condition };
-}
-
-
 export async function getPrediction(
   prevState: any,
   formData: FormData
@@ -44,13 +26,13 @@ export async function getPrediction(
      return { error: "Could not analyze the plant image. Please try again." };
   }
 
-  const { cropType, condition } = parseAnalysis(diagnosis.analysis);
+  const { cropType, condition } = diagnosis;
   
-  if (condition.startsWith('Unknown disease')) {
-    return { error: condition };
+  if (cropType === 'Unknown' || condition.startsWith('Unable to determine')) {
+    return { error: "Could not identify the crop from the image. Please try again with a clearer picture." };
   }
 
-  const confidence = (diagnosis as any).confidence || 0.95;
+  const confidence = 0.95; // Default confidence
   const timestamp = Date.now();
 
   let doctorsOpinion;
