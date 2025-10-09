@@ -90,10 +90,10 @@ You have been given the following description of a plant from an image:
 
 Based on this description, perform the following tasks and generate a comprehensive JSON report.
 
-1.  **Identify Crop**: Determine the crop type. If it's unclear, set it to "Unknown".
+1.  **Identify Crop**: Determine the 'crop' type. If it's unclear, set it to "Unknown".
 2.  **Diagnose Condition**:
-    - Determine the common condition name (e.g., 'Late Blight', 'Healthy').
-    - Determine the conditionScientific name (e.g., 'Phytophthora infestans', 'N/A' for healthy).
+    - Determine the common 'condition' name (e.g., 'Late Blight', 'Healthy').
+    - Determine the 'conditionScientific' name (e.g., 'Phytophthora infestans', 'N/A' for healthy).
 
 3.  **Write Recommendation (Doctor's Opinion)**: Write a detailed, easy-to-understand recommendation report.
     - **Disease Description**: Briefly explain what the condition is.
