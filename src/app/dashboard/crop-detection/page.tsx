@@ -65,7 +65,7 @@ export default function CropDetectionPage() {
     }
   }, [toast]);
   
-  const handleFormSubmit = useCallback((imageUri: string) => {
+  const handleFormSubmit = useCallback(async (imageUri: string) => {
     setPredictionResult(undefined);
     setError(null);
     const formData = new FormData();
@@ -89,20 +89,24 @@ export default function CropDetectionPage() {
         });
 
         if (user && firestore) {
-          // Save to Firestore
-          const currentPrediction = result as Prediction;
-          // Exclude properties that are not in the Entry entity
-          const { newPrediction, weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
-          const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
-          
-          const dataToSave = {
-            ...historyData,
-            imageUrl: placeholderUrl, // Use a placeholder for storage
-            condition: currentPrediction.condition.split(' (')[0], // Save only common name
-          };
+          try {
+              // Save to Firestore
+            const currentPrediction = result as Prediction;
+            // Exclude properties that are not in the Entry entity
+            const { weather, recommendation, recommendedMedicines, relatedVideos, ...historyData } = currentPrediction;
+            const placeholderUrl = `https://picsum.photos/seed/${historyData.timestamp}/600/400`;
+            
+            const dataToSave = {
+              ...historyData,
+              imageUrl: placeholderUrl, // Use a placeholder for storage
+              condition: currentPrediction.condition.split(' (')[0], // Save only common name
+            };
 
-          const cropDataCollection = collection(firestore, 'crop_data');
-          addDoc(cropDataCollection, dataToSave);
+            const cropDataCollection = collection(firestore, 'crop_data');
+            await addDoc(cropDataCollection, dataToSave);
+          } catch(e) {
+            console.error("Firestore write failed:", e);
+          }
         }
       }
     });
