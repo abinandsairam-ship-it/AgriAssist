@@ -43,24 +43,6 @@ export async function getDoctorsOpinion(
   return getDoctorsOpinionFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'getDoctorsOpinionPrompt',
-  input: { schema: GetDoctorsOpinionInputSchema },
-  output: { schema: GetDoctorsOpinionOutputSchema },
-  prompt: `You are an expert agronomist and plant pathologist.
-  Analyze the provided image of a crop.
-  Your task is to:
-  1. Accurately identify the crop, providing its common and scientific name.
-  2. Identify the primary visible disease, providing its common and scientific name. If the plant is healthy, state "Healthy".
-  3. Provide a confidence score (0 to 1) for your analysis.
-  4. Write a detailed "Doctor's Opinion" that explains the findings, describes the disease symptoms (if any), and provides a comprehensive set of recommendations for treatment or prevention. The recommendation should be actionable and easy for a farmer to understand.
-
-  Image to analyze: {{media url=imageUri}}
-
-  Return your response ONLY as a valid JSON object that conforms to the output schema.
-  `,
-});
-
 const getDoctorsOpinionFlow = ai.defineFlow(
   {
     name: 'getDoctorsOpinionFlow',
