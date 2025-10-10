@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'recommendTreatmentForCropPrompt',
   input: {schema: RecommendTreatmentForCropInputSchema},
   output: {schema: RecommendTreatmentForCropOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-1.0-pro-latest',
   prompt: `You are an expert agricultural advisor. A user has identified the following pest or disease affecting their crop:
 
 Pest or Disease: {{{pestOrDisease}}}
