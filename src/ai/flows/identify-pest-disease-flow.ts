@@ -36,6 +36,7 @@ const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
   input: {schema: IdentifyPestDiseaseFromImageInputSchema},
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert in botany and agricultural diagnostics.
 
   Analyze the image to identify the crop and any potential pests or diseases affecting it.
