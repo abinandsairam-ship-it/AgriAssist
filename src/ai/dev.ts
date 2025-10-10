@@ -2,4 +2,7 @@
 import { config } from 'dotenv';
 config();
 
-// Intentionally left empty to prevent Genkit from running failing flows.
+import '@/ai/flows/identify-pest-disease-flow';
+import '@/ai/flows/recommend-treatment-flow';
+import '@/ai/flows/translate-prediction-results';
+import '@/ai/flows/recommend-crop-flow';
