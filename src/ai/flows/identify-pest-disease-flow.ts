@@ -34,7 +34,7 @@ export async function identifyPestDiseaseFromImage(
 
 const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash',
   input: {schema: IdentifyPestDiseaseFromImageInputSchema},
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
   prompt: `You are an expert in botany and agricultural diagnostics.

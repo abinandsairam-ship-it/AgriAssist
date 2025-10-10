@@ -34,7 +34,7 @@ export async function recommendTreatmentForCrop(input: RecommendTreatmentForCrop
 
 const prompt = ai.definePrompt({
   name: 'recommendTreatmentForCropPrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-2.5-flash',
   input: {schema: RecommendTreatmentForCropInputSchema},
   output: {schema: RecommendTreatmentForCropOutputSchema},
   prompt: `You are an expert agricultural advisor. A user has identified the following pest or disease affecting their crop:
