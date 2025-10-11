@@ -59,7 +59,8 @@ const FacebookIcon = () => (
   </svg>
 );
 
-function PasswordResetDialog({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+function PasswordResetDialog() {
+  const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -75,7 +76,7 @@ function PasswordResetDialog({ onOpenChange }: { onOpenChange: (open: boolean) =
       const auth = getAuth();
       await sendPasswordResetEmail(auth, email);
       toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions.' });
-      onOpenChange(false); // Close this dialog
+      setOpen(false); // Close this dialog
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Password Reset Failed', description: error.message });
     } finally {
@@ -84,7 +85,7 @@ function PasswordResetDialog({ onOpenChange }: { onOpenChange: (open: boolean) =
   };
 
   return (
-    <Dialog onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="link" size="sm" className="w-full">Forgot password?</Button>
       </DialogTrigger>
@@ -116,7 +117,6 @@ export function AccountModal() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -212,7 +212,7 @@ export function AccountModal() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : 'Sign In'}
           </Button>
-          <PasswordResetDialog onOpenChange={setResetDialogOpen} />
+          <PasswordResetDialog />
         </form>
       </TabsContent>
       <TabsContent value="signup">
@@ -256,10 +256,7 @@ export function AccountModal() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(o) => {
-        if (resetDialogOpen) return;
-        setOpen(o);
-    }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <SidebarMenuButton tooltip="Account">
           {isUserLoading ? (
@@ -284,3 +281,5 @@ export function AccountModal() {
     </Dialog>
   );
 }
+
+    
