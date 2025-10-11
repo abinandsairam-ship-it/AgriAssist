@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getPrediction } from '@/lib/actions';
@@ -5,23 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, ImageUp, Loader2, Bot, Scan, AlertTriangle } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
+import { Camera, ImageUp, Loader2, Bot, Scan, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
-import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
-import { readStreamableValue } from 'ai/rsc';
+import type { Prediction } from '@/lib/definitions';
+import { useStreamableValue } from 'ai/rsc';
 
 export default function CropDetectionPage() {
-  const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
-  const [isPending, startTransition] = useTransition();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
   
+  const [predictionResult, setPredictionResult] = useState<Prediction | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,7 +35,6 @@ export default function CropDetectionPage() {
   useEffect(() => {
     const getCameraPermission = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error('Camera not supported on this device');
         setHasCameraPermission(false);
         return;
       }
@@ -43,15 +44,8 @@ export default function CropDetectionPage() {
           videoRef.current.srcObject = stream;
         }
         setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
+      } catch (err) {
         setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description:
-            'Please enable camera permissions in your browser settings to use this feature.',
-        });
       }
     };
 
@@ -63,74 +57,85 @@ export default function CropDetectionPage() {
         stream.getTracks().forEach(track => track.stop());
       }
     }
-  }, [toast]);
+  }, []);
   
-  const handleFormSubmit = useCallback(async (imageUri: string) => {
-    setPredictionResult(undefined);
+  const handleFormSubmit = async () => {
+    if (!imageUri) {
+      toast({
+        variant: 'destructive',
+        title: 'No Image',
+        description: 'Please upload or capture an image first.',
+      });
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setPredictionResult(null);
     setError(null);
+    
     const formData = new FormData();
     formData.append('imageUri', imageUri);
     if (user?.uid) {
       formData.append('userId', user.uid);
     }
     
-    startTransition(async () => {
-      try {
-        const resultStream = await getPrediction(null, formData);
-        
-        const content: Prediction = {
-          cropType: '',
-          condition: '',
-          recommendation: '',
-          confidence: 0,
-          timestamp: Date.now(),
-          imageUrl: imageUri,
-          recommendedMedicines: [],
-          relatedVideos: [],
-          userId: user?.uid,
-        };
+    try {
+      const stream = await getPrediction(null, formData);
+      const initialPrediction: Prediction = {
+        cropType: '',
+        condition: '',
+        recommendation: '',
+        confidence: 0,
+        timestamp: Date.now(),
+        imageUrl: imageUri,
+        recommendedMedicines: [],
+        relatedVideos: [],
+        userId: user?.uid,
+      };
 
-        for await (const delta of readStreamableValue(resultStream)) {
-          if (delta.cropName) content.cropType = delta.cropName;
-          if (delta.pestOrDisease) content.condition = delta.pestOrDisease;
-          if (delta.recommendation) content.recommendation = delta.recommendation;
-          if (delta.confidence) content.confidence = delta.confidence;
-          setPredictionResult({ ...content });
-        }
-      
-        toast({
-          title: 'Success!',
-          description: 'Your crop has been analyzed.',
-        });
+      for await (const delta of stream) {
+          if (delta.cropName) initialPrediction.cropType = delta.cropName;
+          if (delta.pestOrDisease) initialPrediction.condition = delta.pestOrDisease;
+          if (delta.recommendation) initialPrediction.recommendation = delta.recommendation;
+          if (delta.confidence) initialPrediction.confidence = delta.confidence;
+          setPredictionResult({ ...initialPrediction });
+      }
 
-        if (user && firestore) {
+      // Save to Firestore after successful analysis
+       if (user && firestore && initialPrediction.cropType) {
           try {
-            // Save only the core AI data to Firestore
             const dataToSave = {
               userId: user.uid || '',
-              timestamp: content.timestamp,
-              cropType: content.cropType,
-              condition: content.condition.split(' (')[0],
-              imageUrl: `https://picsum.photos/seed/${content.timestamp}/600/400`, // Use a placeholder for history
-              confidence: content.confidence,
+              timestamp: initialPrediction.timestamp,
+              cropType: initialPrediction.cropType,
+              condition: initialPrediction.condition.split(' (')[0],
+              imageUrl: `https://picsum.photos/seed/${initialPrediction.timestamp}/600/400`,
+              confidence: initialPrediction.confidence,
             };
-
             const cropDataCollection = collection(firestore, 'crop_data');
             await addDoc(cropDataCollection, dataToSave);
           } catch(e) {
             console.error("Firestore write failed:", e);
+             toast({
+              variant: 'destructive',
+              title: 'History Save Failed',
+              description: 'Could not save the analysis to your history.',
+            });
           }
         }
-      } catch (e: any) {
-        setError(e.message || "An unknown error occurred.");
-        toast({
-          variant: 'destructive',
-          title: 'Analysis Failed',
-          description: e.message || 'Could not get a prediction.',
-        });
-      }
-    });
-  }, [user, firestore, toast]);
+      
+    } catch (e: any) {
+      const errorMessage = e?.error || e.message || "An unknown error occurred.";
+      setError(errorMessage);
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: errorMessage,
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -138,8 +143,7 @@ export default function CropDetectionPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUri = reader.result as string;
-        setImagePreview(dataUri);
-        handleFormSubmit(dataUri);
+        setImageUri(dataUri);
       };
       reader.readAsDataURL(file);
     }
@@ -155,25 +159,31 @@ export default function CropDetectionPage() {
       if (context) {
         context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         const dataUri = canvas.toDataURL('image/jpeg');
-        setImagePreview(dataUri);
-        handleFormSubmit(dataUri);
+        setImageUri(dataUri);
       }
     }
-  }, [handleFormSubmit]);
+  }, []);
 
-  const currentPrediction = predictionResult && "cropType" in predictionResult ? (predictionResult as Prediction) : null;
+  const clearImage = () => {
+    setImageUri(null);
+    setPredictionResult(null);
+    setError(null);
+  }
 
   const renderAnalysisState = () => {
-    if (isPending) {
+    if (isAnalyzing) {
       return (
         <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
           <CardHeader>
             <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
             <CardTitle>Analyzing...</CardTitle>
             <CardDescription>
-              Our AI is inspecting your image. Please wait a moment.
+              {predictionResult?.cropType ? `Identified ${predictionResult.cropType}...` : 'Our AI is inspecting your image.'}
             </CardDescription>
           </CardHeader>
+           <CardContent>
+            {predictionResult && <PredictionResult result={predictionResult} isStreaming={true} />}
+          </CardContent>
         </Card>
       );
     }
@@ -192,8 +202,8 @@ export default function CropDetectionPage() {
       );
     }
 
-    if (currentPrediction) {
-      return <PredictionResult result={currentPrediction} />;
+    if (predictionResult) {
+      return <PredictionResult result={predictionResult} />;
     }
 
     return (
@@ -202,7 +212,7 @@ export default function CropDetectionPage() {
             <Bot className="mx-auto h-16 w-16 text-muted-foreground" />
             <CardTitle>Awaiting Analysis</CardTitle>
             <CardDescription>
-              Point your camera at a plant and click "Analyze Plant".
+              Capture or upload an image and click "Analyze Plant".
             </CardDescription>
           </CardHeader>
       </Card>
@@ -222,25 +232,36 @@ export default function CropDetectionPage() {
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-1 h-fit">
           <CardHeader>
-            <CardTitle>Live Analysis</CardTitle>
+            <CardTitle>Capture or Upload Image</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="image-upload">Live Camera Feed</Label>
+                <Label htmlFor="image-upload">Image Preview</Label>
                 <div className="w-full aspect-video border-2 border-dashed rounded-lg flex items-center justify-center relative overflow-hidden bg-muted/50">
-                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                  {hasCameraPermission === false && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
-                       <Camera className="h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground mt-2">Camera access is required. Please grant permission in your browser.</p>
-                    </div>
-                  )}
-                  {hasCameraPermission === null && (
-                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
-                       <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
-                      <p className="text-muted-foreground mt-2">Initializing camera...</p>
-                    </div>
+                  {imageUri ? (
+                    <>
+                      <img src={imageUri} alt="Crop Preview" className="w-full h-full object-cover" />
+                       <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={clearImage}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                      {hasCameraPermission === false && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
+                          <Camera className="h-12 w-12 text-muted-foreground" />
+                          <p className="text-muted-foreground mt-2">Camera access is required. Please grant permission in your browser.</p>
+                        </div>
+                      )}
+                      {hasCameraPermission === null && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center p-4">
+                          <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
+                          <p className="text-muted-foreground mt-2">Initializing camera...</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
                  <canvas ref={canvasRef} className="hidden"></canvas>
@@ -255,25 +276,34 @@ export default function CropDetectionPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button
+                 <Button
                   type="button"
+                  variant="secondary"
                   className="w-full"
                   onClick={captureFromVideo}
-                  disabled={!hasCameraPermission || isPending}
+                  disabled={!hasCameraPermission || isAnalyzing}
                 >
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
-                   Analyze Plant
+                  <Camera className="mr-2 h-4 w-4" /> Capture
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isPending}
+                  disabled={isAnalyzing}
                 >
                   <ImageUp className="mr-2 h-4 w-4" /> Upload
                 </Button>
               </div>
+               <Button
+                  type="button"
+                  className="w-full"
+                  onClick={handleFormSubmit}
+                  disabled={!imageUri || isAnalyzing}
+                >
+                  {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
+                   Analyze Plant
+                </Button>
             </div>
           </CardContent>
         </Card>

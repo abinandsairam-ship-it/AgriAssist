@@ -19,16 +19,20 @@ export async function getPrediction(
   const stream = createStreamableValue();
 
   (async () => {
-    const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
-    for await (const delta of resultStream) {
-      stream.update(delta);
+    try {
+      const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+      for await (const delta of resultStream) {
+        stream.update(delta);
+      }
+    } catch (e) {
+      console.error("AI analysis failed:", e);
+      // It's important to still use stream.error to propagate the error to the client hook
+      stream.error({ error: 'AI analysis failed. Please try again.' });
+    } finally {
+      stream.done();
     }
-    stream.done();
-  })().catch(e => {
-    console.error("AI analysis failed:", e);
-    stream.done({ error: 'AI analysis failed. Please try again.' });
-  });
-  
+  })()
+
   return stream.value;
 }
 

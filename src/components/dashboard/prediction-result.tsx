@@ -15,12 +15,13 @@ import { getTranslatedText } from '@/lib/actions';
 import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Video } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bot, CloudSun, Stethoscope, ShoppingCart, Video, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useLanguage } from '@/context/language-context';
 
 type PredictionResultProps = {
   result: Prediction | { error: string } | undefined;
+  isStreaming?: boolean;
 };
 
 type TranslatedContent = {
@@ -42,21 +43,30 @@ function AwaitingAnalysis() {
   );
 }
 
-function PredictionDisplay({ prediction }: { prediction: Prediction }) {
+function PredictionDisplay({ prediction, isStreaming }: { prediction: Prediction, isStreaming?: boolean }) {
   const { language, setLanguage } = useLanguage();
   const [isTranslating, startTransition] = React.useTransition();
   const [translatedContent, setTranslatedContent] = React.useState<TranslatedContent | null>(null);
 
+  const confidencePercent = Math.round((prediction.confidence || 0) * 100);
+  const isHealthy = (prediction.condition || '').toLowerCase().includes('healthy');
+  
+  const displayedCondition = translatedContent?.condition ?? prediction.condition;
+  const displayedRecommendation = translatedContent?.recommendation ?? prediction.recommendation;
+
   React.useEffect(() => {
-    if (language === 'en' || !prediction.condition || !prediction.recommendation) {
+    if (isStreaming || language === 'en' || !prediction.condition || !prediction.recommendation) {
       setTranslatedContent(null);
       return;
     }
+    
+    const conditionToTranslate = prediction.condition;
+    const recommendationToTranslate = prediction.recommendation;
 
     startTransition(() => {
       Promise.all([
-        getTranslatedText(prediction.condition, language),
-        getTranslatedText(prediction.recommendation, language),
+        getTranslatedText(conditionToTranslate, language),
+        getTranslatedText(recommendationToTranslate, language),
       ]).then(([condition, recommendation]) => {
         setTranslatedContent({ condition, recommendation });
       }).catch(error => {
@@ -64,12 +74,8 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
         setTranslatedContent(null); // Fallback to English on error
       });
     });
-  }, [prediction, language]);
+  }, [prediction.condition, prediction.recommendation, language, isStreaming]);
   
-  const confidencePercent = Math.round((prediction.confidence || 0) * 100);
-  const isHealthy = (prediction.condition || '').toLowerCase().includes('healthy');
-  const displayedCondition = translatedContent?.condition ?? prediction.condition;
-  const displayedRecommendation = translatedContent?.recommendation ?? prediction.recommendation;
 
   const ConditionIcon = isHealthy ? CheckCircle2 : AlertCircle;
   const iconColor = isHealthy ? "text-primary" : "text-destructive";
@@ -88,7 +94,7 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
             <LanguageSwitcher
               selectedLanguage={language}
               onLanguageChange={setLanguage}
-              disabled={isTranslating}
+              disabled={isTranslating || isStreaming}
             />
           </div>
         </CardHeader>
@@ -110,18 +116,21 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Crop Type
               </h3>
-              <p className="text-lg font-semibold">{prediction.cropType || 'N/A'}</p>
+              {prediction.cropType ? 
+                <p className="text-lg font-semibold">{prediction.cropType}</p> 
+                : <Skeleton className="h-7 w-24 mt-1" /> 
+              }
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
                 Condition
               </h3>
-              {isTranslating ? (
-                <Skeleton className="h-7 w-32" />
+              {isTranslating || (isStreaming && !displayedCondition) ? (
+                <Skeleton className="h-7 w-32 mt-1" />
               ) : (
                 <div className="flex items-center gap-2">
-                  <ConditionIcon className={`h-5 w-5 ${iconColor}`} />
-                  <p className="text-lg font-semibold">{displayedCondition}</p>
+                  {displayedCondition && <ConditionIcon className={`h-5 w-5 ${iconColor}`} />}
+                  <p className="text-lg font-semibold">{displayedCondition || '...'}</p>
                 </div>
               )}
             </div>
@@ -129,10 +138,14 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
               <h3 className="text-sm font-medium text-muted-foreground mb-1">
                 Confidence
               </h3>
-              <div className="flex items-center gap-4">
-                <Progress value={confidencePercent} className="w-[60%]" />
-                <span className="font-semibold text-lg">{confidencePercent}%</span>
-              </div>
+              {(isStreaming && confidencePercent === 0) ? (
+                <Skeleton className="h-7 w-32 mt-1" />
+              ) : (
+                <div className="flex items-center gap-4">
+                  <Progress value={confidencePercent} className="w-[60%]" />
+                  <span className="font-semibold text-lg">{confidencePercent}%</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -167,17 +180,23 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
         </Card>
       )}
 
-      {prediction.recommendation && (
+      {(isStreaming && !displayedRecommendation) || displayedRecommendation ? (
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <Stethoscope className="h-6 w-6 text-primary" />
             <CardTitle>Doctor's Opinion</CardTitle>
           </CardHeader>
           <CardContent>
-            {isTranslating ? <Skeleton className="h-20 w-full" /> : <p>{displayedRecommendation}</p>}
+            {isTranslating || (isStreaming && !displayedRecommendation) ? 
+              (<div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>)
+             : <p>{displayedRecommendation}</p>}
           </CardContent>
         </Card>
-      )}
+      ) : null}
       
       {!isHealthy && prediction.recommendedMedicines && prediction.recommendedMedicines.length > 0 && (
         <Card>
@@ -232,9 +251,9 @@ function PredictionDisplay({ prediction }: { prediction: Prediction }) {
 }
 
 
-export function PredictionResult({ result }: PredictionResultProps) {
+export function PredictionResult({ result, isStreaming }: PredictionResultProps) {
     if (result && "condition" in result) {
-      return <PredictionDisplay prediction={result} />;
+      return <PredictionDisplay prediction={result} isStreaming={isStreaming} />;
     }
     
     return <AwaitingAnalysis />;

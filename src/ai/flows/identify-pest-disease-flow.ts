@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that identifies the crop, any potential pests or diseases from an image, and recommends a course of action.
@@ -35,12 +36,7 @@ export async function identifyPestDiseaseFromImage(
 }
 
 
-const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
-  name: 'identifyPestDiseaseFromImagePrompt',
-  input: {schema: IdentifyPestDiseaseFromImageInputSchema},
-  output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
-  prompt: `You are an expert in botany and agricultural diagnostics.
+const identifyPestDiseaseFromImagePrompt = `You are an expert in botany and agricultural diagnostics.
 
   Analyze the image to identify the crop and any potential pests or diseases affecting it.
 
@@ -48,8 +44,7 @@ const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
 
   Photo: {{media url=photoDataUri}}
-  `,
-});
+  `;
 
 const identifyPestDiseaseFromImageFlow = ai.defineFlow(
   {
@@ -61,15 +56,7 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
   async input => {
     const {stream} = await ai.generate({
       model: 'googleai/gemini-1.5-flash',
-      prompt: `You are an expert in botany and agricultural diagnostics.
-
-      Analyze the image to identify the crop and any potential pests or diseases affecting it.
-
-      - If the crop appears healthy, set the pestOrDisease field to "Healthy" and provide a recommendation for maintaining good health.
-      - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
-
-      Photo: {{media url=photoDataUri}}
-      `,
+      prompt: identifyPestDiseaseFromImagePrompt,
       input: {
         photoDataUri: input.photoDataUri
       },
