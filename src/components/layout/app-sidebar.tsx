@@ -169,8 +169,8 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings">
-              <Link href="#">
+            <SidebarMenuButton asChild tooltip="Settings" isActive={pathname.startsWith('/dashboard/settings')}>
+              <Link href="/dashboard/settings">
                 <Settings />
                 <span>Settings</span>
               </Link>
