@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const IdentifyPestDiseaseFromImageInputSchema = z.object({
   photoDataUri: z
@@ -58,7 +59,7 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
   },
   async input => {
-    const { output } = await identifyPestDiseaseFromImagePrompt(input);
+    const { output } = await identifyPestDiseaseFromImagePrompt(input, { model: googleAI.model('gemini-1.5-flash-preview') });
     if (!output) {
         throw new Error('The AI model did not return a valid response.');
     }
