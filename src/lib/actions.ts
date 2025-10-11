@@ -1,8 +1,7 @@
 
 'use server';
-import type { Prediction } from '@/lib/definitions';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
-import { identifyPestDiseaseFromImage, IdentifyPestDiseaseFromImageOutput } from '@/ai/flows/identify-pest-disease-flow';
+import { identifyPestDiseaseFromImage } from '@/ai/flows/identify-pest-disease-flow';
 import { createStreamableValue } from 'ai/rsc';
 
 export async function getPrediction(
@@ -17,18 +16,16 @@ export async function getPrediction(
   
   const stream = createStreamableValue();
 
-  // Offload the AI call to a separate async function to not block the server action
   (async () => {
     try {
-      const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
-      // The result is not a stream, so we just update the value once
-      stream.update(result);
+      const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+      for await (const delta of resultStream) {
+        stream.update(delta);
+      }
     } catch (e) {
       console.error("AI analysis failed:", e);
-      // It's important to use stream.error to propagate the error to the client
       stream.error({ error: 'AI analysis failed. Please try again.' });
     } finally {
-      // Always finish the stream
       stream.done();
     }
   })();
