@@ -13,6 +13,7 @@ import { CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction, RecommendedMedicine, RelatedVideo } from '@/lib/definitions';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function CropDetectionPage() {
   const [predictionResult, setPredictionResult] = useState<Prediction | { error: string } | undefined>(undefined);
@@ -74,35 +75,37 @@ export default function CropDetectionPage() {
     }
     
     startTransition(async () => {
-      const result = await getPrediction(null, formData);
-      
-      if (result && 'error' in result && result.error) {
-        setError(result.error);
-        setPredictionResult(undefined);
-      } else if (result && 'cropType' in result) {
-        // Enhance the result with client-side generated mock data for UI purposes
-        const isHealthy = (result.condition || '').toLowerCase().includes('healthy');
-        const enhancedResult: Prediction = {
-          ...result,
-          recommendedMedicines: isHealthy
-            ? []
-            : [{ name: 'Universal Fungicide', url: '#', price: 25.00 }],
-          relatedVideos: [
-            {
-              title: `Tips for managing ${result.condition}`,
-              videoUrl: '#',
-              thumbnailUrl: `https://picsum.photos/seed/${result.cropType}/400/225`,
-            },
-          ],
-          weather: {
-            location: 'Punjab, India',
-            temperature: '30°C',
-            condition: 'Sunny',
-          },
+       const resultStream = await getPrediction(null, formData);
+
+        // This is a client-side-only value that will be used to accumulate the streaming text
+        const content: Prediction = {
+          cropType: '',
+          condition: '',
+          recommendation: '',
+          confidence: 0,
+          timestamp: Date.now(),
+          imageUrl: imageUri,
+          recommendedMedicines: [],
+          relatedVideos: [],
+          userId: user?.uid,
         };
 
-        setPredictionResult(enhancedResult);
-        setError(null);
+        for await (const delta of readStreamableValue(resultStream)) {
+          if (delta.cropName) {
+            content.cropType = delta.cropName;
+          }
+          if (delta.pestOrDisease) {
+            content.condition = delta.pestOrDisease;
+          }
+          if (delta.recommendation) {
+            content.recommendation = delta.recommendation;
+          }
+          if (delta.confidence) {
+            content.confidence = delta.confidence;
+          }
+          setPredictionResult({ ...content });
+        }
+      
         toast({
           title: 'Success!',
           description: 'Your crop has been analyzed.',
@@ -112,12 +115,12 @@ export default function CropDetectionPage() {
           try {
             // Save only the core AI data to Firestore
             const dataToSave = {
-              userId: enhancedResult.userId || '',
-              timestamp: enhancedResult.timestamp,
-              cropType: enhancedResult.cropType,
-              condition: enhancedResult.condition.split(' (')[0],
-              imageUrl: `https://picsum.photos/seed/${enhancedResult.timestamp}/600/400`, // Use a placeholder for history
-              confidence: enhancedResult.confidence,
+              userId: user.uid || '',
+              timestamp: content.timestamp,
+              cropType: content.cropType,
+              condition: content.condition.split(' (')[0],
+              imageUrl: `https://picsum.photos/seed/${content.timestamp}/600/400`, // Use a placeholder for history
+              confidence: content.confidence,
             };
 
             const cropDataCollection = collection(firestore, 'crop_data');
@@ -126,7 +129,6 @@ export default function CropDetectionPage() {
             console.error("Firestore write failed:", e);
           }
         }
-      }
     });
   }, [user, firestore, toast]);
   
@@ -162,7 +164,7 @@ export default function CropDetectionPage() {
   const currentPrediction = predictionResult && "cropType" in predictionResult ? (predictionResult as Prediction) : null;
 
   const renderAnalysisState = () => {
-    if (isPending) {
+    if (isPending && !currentPrediction) {
       return (
         <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
           <CardHeader>

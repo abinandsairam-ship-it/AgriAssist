@@ -27,15 +27,13 @@ const IdentifyPestDiseaseFromImageOutputSchema = z.object({
 });
 export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDiseaseFromImageOutputSchema>;
 
+
 export async function identifyPestDiseaseFromImage(
   input: IdentifyPestDiseaseFromImageInput
-): Promise<IdentifyPestDiseaseFromImageOutput> {
-  const flowOutput = await identifyPestDiseaseFromImageFlow(input);
-  if (!flowOutput) {
-      throw new Error("The AI model did not return a valid response.");
-  }
-  return flowOutput;
+): Promise<ReadableStream<IdentifyPestDiseaseFromImageOutput>> {
+  return identifyPestDiseaseFromImageFlow(input);
 }
+
 
 const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
@@ -58,9 +56,10 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
     name: 'identifyPestDiseaseFromImageFlow',
     inputSchema: IdentifyPestDiseaseFromImageInputSchema,
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
+    stream: true,
   },
   async input => {
-    const {output} = await identifyPestDiseaseFromImagePrompt(input);
-    return output!;
+    const {stream} = await identifyPestDiseaseFromImagePrompt(input);
+    return stream;
   }
 );
