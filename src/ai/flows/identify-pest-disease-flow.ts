@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image.
+ * @fileOverview An AI agent that identifies the crop, any potential pests or diseases from an image, and recommends a course of action.
  *
- * - identifyPestDiseaseFromImage - A function that handles the identification process.
+ * - identifyPestDiseaseFromImage - A function that handles the identification and recommendation process.
  * - IdentifyPestDiseaseFromImageInput - The input type for the identifyPestDiseaseFromImage function.
  * - IdentifyPestDiseaseFromImageOutput - The return type for the identifyPestDiseaseFromImage function.
  */
@@ -23,25 +23,31 @@ const IdentifyPestDiseaseFromImageOutputSchema = z.object({
   cropName: z.string().describe('The identified name of the crop in the image.'),
   pestOrDisease: z.string().describe('The identified pest or disease affecting the crop. If the crop is healthy, this should be "Healthy".'),
   confidence: z.number().describe('The confidence level of the identification (0-1).'),
+  recommendation: z.string().describe('A detailed recommendation for treatment or best practices.'),
 });
 export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDiseaseFromImageOutputSchema>;
 
 export async function identifyPestDiseaseFromImage(
   input: IdentifyPestDiseaseFromImageInput
 ): Promise<IdentifyPestDiseaseFromImageOutput> {
-  return identifyPestDiseaseFromImageFlow(input);
+  const flowOutput = await identifyPestDiseaseFromImageFlow(input);
+  if (!flowOutput) {
+      throw new Error("The AI model did not return a valid response.");
+  }
+  return flowOutput;
 }
 
 const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
-  model: 'googleai/gemini-2.5-flash',
   input: {schema: IdentifyPestDiseaseFromImageInputSchema},
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert in botany and agricultural diagnostics.
 
   Analyze the image to identify the crop and any potential pests or diseases affecting it.
 
-  If the crop appears healthy, set the pestOrDisease field to "Healthy".
+  - If the crop appears healthy, set the pestOrDisease field to "Healthy" and provide a recommendation for maintaining good health.
+  - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
 
   Photo: {{media url=photoDataUri}}
   `,
@@ -55,9 +61,6 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await identifyPestDiseaseFromImagePrompt(input);
-     if (!output) {
-      throw new Error('The AI model did not return a valid identification.');
-    }
-    return output;
+    return output!;
   }
 );

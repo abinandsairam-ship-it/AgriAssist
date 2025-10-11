@@ -3,7 +3,6 @@
 import type { Prediction } from '@/lib/definitions';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
 import { identifyPestDiseaseFromImage } from '@/ai/flows/identify-pest-disease-flow';
-import { recommendTreatmentForCrop } from '@/ai/flows/recommend-treatment-flow';
 
 export async function getPrediction(
   prevState: any,
@@ -17,30 +16,19 @@ export async function getPrediction(
   }
 
   try {
-    const identification = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+    const identificationAndRecommendation = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
 
-    if (!identification.cropName) {
+    if (!identificationAndRecommendation.cropName) {
       return { error: 'The AI could not identify a crop in the image. Please try another image.' };
     }
-
-    const isHealthy = identification.pestOrDisease.toLowerCase() === 'healthy';
-
-    let recommendation = 'The plant appears to be in excellent health. Continue with regular watering and nutrient schedules. Monitor for any changes.';
-    if (!isHealthy) {
-        const treatmentResponse = await recommendTreatmentForCrop({
-            cropName: identification.cropName,
-            pestOrDisease: identification.pestOrDisease,
-            organicPreference: false, // Default to chemical for now
-        });
-        recommendation = treatmentResponse.treatmentRecommendations;
-    }
     
+    const isHealthy = identificationAndRecommendation.pestOrDisease.toLowerCase() === 'healthy';
 
     const result: Prediction = {
-      cropType: identification.cropName,
-      condition: identification.pestOrDisease,
-      confidence: identification.confidence,
-      recommendation: recommendation,
+      cropType: identificationAndRecommendation.cropName,
+      condition: identificationAndRecommendation.pestOrDisease,
+      confidence: identificationAndRecommendation.confidence,
+      recommendation: identificationAndRecommendation.recommendation,
       timestamp: Date.now(),
       imageUrl: imageUri,
       userId: userId,
@@ -49,9 +37,9 @@ export async function getPrediction(
       recommendedMedicines: isHealthy ? [] : [{ name: 'Universal Fungicide', url: '#', price: 25.00 }],
       relatedVideos: [
         {
-          title: `Tips for managing ${identification.pestOrDisease}`,
+          title: `Tips for managing ${identificationAndRecommendation.pestOrDisease}`,
           videoUrl: '#',
-          thumbnailUrl: `https://picsum.photos/seed/${identification.cropName}/400/225`,
+          thumbnailUrl: `https://picsum.photos/seed/${identificationAndRecommendation.cropName}/400/225`,
         },
       ],
       weather: {
