@@ -30,7 +30,7 @@ export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDise
 
 export async function identifyPestDiseaseFromImage(
   input: IdentifyPestDiseaseFromImageInput
-): Promise<ReadableStream<IdentifyPestDiseaseFromImageOutput>> {
+): Promise<any> {
   return identifyPestDiseaseFromImageFlow(input);
 }
 
@@ -59,7 +59,25 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
     stream: true,
   },
   async input => {
-    const {stream} = await identifyPestDiseaseFromImagePrompt(input);
+    const {stream} = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
+      prompt: `You are an expert in botany and agricultural diagnostics.
+
+      Analyze the image to identify the crop and any potential pests or diseases affecting it.
+
+      - If the crop appears healthy, set the pestOrDisease field to "Healthy" and provide a recommendation for maintaining good health.
+      - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
+
+      Photo: {{media url=photoDataUri}}
+      `,
+      input: {
+        photoDataUri: input.photoDataUri
+      },
+      output: {
+        schema: IdentifyPestDiseaseFromImageOutputSchema
+      },
+      stream: true,
+    });
     return stream;
   }
 );

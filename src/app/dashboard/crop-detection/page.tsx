@@ -75,9 +75,9 @@ export default function CropDetectionPage() {
     }
     
     startTransition(async () => {
-       const resultStream = await getPrediction(null, formData);
-
-        // This is a client-side-only value that will be used to accumulate the streaming text
+      try {
+        const resultStream = await getPrediction(null, formData);
+        
         const content: Prediction = {
           cropType: '',
           condition: '',
@@ -91,18 +91,10 @@ export default function CropDetectionPage() {
         };
 
         for await (const delta of readStreamableValue(resultStream)) {
-          if (delta.cropName) {
-            content.cropType = delta.cropName;
-          }
-          if (delta.pestOrDisease) {
-            content.condition = delta.pestOrDisease;
-          }
-          if (delta.recommendation) {
-            content.recommendation = delta.recommendation;
-          }
-          if (delta.confidence) {
-            content.confidence = delta.confidence;
-          }
+          if (delta.cropName) content.cropType = delta.cropName;
+          if (delta.pestOrDisease) content.condition = delta.pestOrDisease;
+          if (delta.recommendation) content.recommendation = delta.recommendation;
+          if (delta.confidence) content.confidence = delta.confidence;
           setPredictionResult({ ...content });
         }
       
@@ -129,6 +121,14 @@ export default function CropDetectionPage() {
             console.error("Firestore write failed:", e);
           }
         }
+      } catch (e: any) {
+        setError(e.message || "An unknown error occurred.");
+        toast({
+          variant: 'destructive',
+          title: 'Analysis Failed',
+          description: e.message || 'Could not get a prediction.',
+        });
+      }
     });
   }, [user, firestore, toast]);
   
@@ -164,7 +164,7 @@ export default function CropDetectionPage() {
   const currentPrediction = predictionResult && "cropType" in predictionResult ? (predictionResult as Prediction) : null;
 
   const renderAnalysisState = () => {
-    if (isPending && !currentPrediction) {
+    if (isPending) {
       return (
         <Card className="h-full flex flex-col items-center justify-center text-center p-8 border-dashed">
           <CardHeader>

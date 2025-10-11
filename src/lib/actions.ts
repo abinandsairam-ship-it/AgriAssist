@@ -16,7 +16,7 @@ export async function getPrediction(
     throw new Error('Please upload or capture an image to analyze.');
   }
 
-  const stream = createStreamableValue<IdentifyPestDiseaseFromImageOutput>();
+  const stream = createStreamableValue();
 
   (async () => {
     const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
@@ -26,9 +26,7 @@ export async function getPrediction(
     stream.done();
   })().catch(e => {
     console.error("AI analysis failed:", e);
-    // You might want to handle the error in the stream if your client-side logic supports it.
-    // For now, this will just log the error on the server.
-    stream.done(); 
+    stream.done({ error: 'AI analysis failed. Please try again.' });
   });
   
   return stream.value;
