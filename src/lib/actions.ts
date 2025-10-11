@@ -17,6 +17,7 @@ export async function getPrediction(
   
   const stream = createStreamableValue();
 
+  // Offload the AI call to a separate async function to not block the server action
   (async () => {
     try {
       const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
@@ -24,8 +25,10 @@ export async function getPrediction(
       stream.update(result);
     } catch (e) {
       console.error("AI analysis failed:", e);
+      // It's important to use stream.error to propagate the error to the client
       stream.error({ error: 'AI analysis failed. Please try again.' });
     } finally {
+      // Always finish the stream
       stream.done();
     }
   })();

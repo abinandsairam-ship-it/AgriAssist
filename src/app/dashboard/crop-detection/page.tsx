@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, ImageUp, Loader2, Bot, Scan, AlertTriangle, X } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
 import { readStreamableValue } from 'ai/rsc';
+import type { IdentifyPestDiseaseFromImageOutput } from '@/ai/flows/identify-pest-disease-flow';
 
 export default function CropDetectionPage() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -85,11 +86,12 @@ export default function CropDetectionPage() {
       let finalPrediction: Prediction | null = null;
       for await (const delta of readStreamableValue(stream)) {
         if (delta) {
+          const newPredictionData = delta as IdentifyPestDiseaseFromImageOutput;
           const newPrediction: Prediction = {
-            cropType: delta.cropName || '',
-            condition: delta.pestOrDisease || '',
-            recommendation: delta.recommendation || '',
-            confidence: delta.confidence || 0,
+            cropType: newPredictionData.cropName || '',
+            condition: newPredictionData.pestOrDisease || '',
+            recommendation: newPredictionData.recommendation || '',
+            confidence: newPredictionData.confidence || 0,
             timestamp: Date.now(),
             imageUrl: imageUri,
             recommendedMedicines: [],
@@ -110,7 +112,7 @@ export default function CropDetectionPage() {
               timestamp: finalPrediction.timestamp,
               cropType: finalPrediction.cropType,
               condition: finalPrediction.condition.split(' (')[0],
-              imageUrl: `https://picsum.photos/seed/${finalPrediction.timestamp}/600/400`,
+              imageUrl: imageUri, // Save the actual image URI
               confidence: finalPrediction.confidence,
             };
             const cropDataCollection = collection(firestore, 'crop_data');
