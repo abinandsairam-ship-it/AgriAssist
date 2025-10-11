@@ -1,16 +1,16 @@
 
 'use server';
+
 /**
- * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image.
+ * @fileOverview Identifies the pest or disease from an image of a crop and provides recommendations.
  *
- * - identifyPestDiseaseFromImage - A function that handles the identification process.
+ * - identifyPestDiseaseFromImage - A function that handles the pest/disease identification process.
  * - IdentifyPestDiseaseFromImageInput - The input type for the identifyPestDiseaseFromImage function.
  * - IdentifyPestDiseaseFromImageOutput - The return type for the identifyPestDiseaseFromImage function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {createStreamableValue} from 'ai/rsc';
 
 const IdentifyPestDiseaseFromImageInputSchema = z.object({
   photoDataUri: z
@@ -19,76 +19,61 @@ const IdentifyPestDiseaseFromImageInputSchema = z.object({
       "A photo of a crop, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
-export type IdentifyPestDiseaseFromImageInput = z.infer<typeof IdentifyPestDiseaseFromImageInputSchema>;
+export type IdentifyPestDiseaseFromImageInput = z.infer<
+  typeof IdentifyPestDiseaseFromImageInputSchema
+>;
 
 const IdentifyPestDiseaseFromImageOutputSchema = z.object({
-  cropName: z.string().describe('The identified name of the crop in the image.'),
-  pestOrDisease: z.string().describe('The identified pest or disease affecting the crop. If the crop is healthy, this should be "Healthy".'),
-  confidence: z.number().describe('The confidence level of the identification (0-1).'),
-  recommendation: z.string().describe('A detailed recommendation for treating the identified issue. If the plant is healthy, provide general care tips.'),
+  cropName: z.string().describe('The name of the identified crop.'),
+  pestOrDisease: z
+    .string()
+    .describe(
+      "The identified pest or disease affecting the crop. If the crop is healthy, this should be 'Healthy'."
+    ),
+  confidence: z
+    .number()
+    .describe('A confidence score (0-1) for the prediction.'),
+  recommendation: z
+    .string()
+    .describe(
+      'A detailed recommendation for treating the identified issue. If healthy, provide general care tips.'
+    ),
 });
-export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDiseaseFromImageOutputSchema>;
-
-export async function identifyPestDiseaseFromImage(
-  input: IdentifyPestDiseaseFromImageInput
-) {
-  const stream = createStreamableValue();
-
-  (async () => {
-    const {stream: resultStream} = await identifyPestDiseaseFromImagePrompt.stream(input);
-    for await (const chunk of resultStream) {
-       stream.update(chunk);
-    }
-    stream.done();
-  })();
-  
-  return stream.value;
-}
+export type IdentifyPestDiseaseFromImageOutput = z.infer<
+  typeof IdentifyPestDiseaseFromImageOutputSchema
+>;
 
 const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
   input: {schema: IdentifyPestDiseaseFromImageInputSchema},
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
-  model: 'googleai/gemini-1.5-flash-preview',
-  prompt: `You are an expert in botany and agricultural diagnostics.
+  prompt: `You are an expert agriculturalist. Analyze the provided image of a crop.
 
-  Analyze the image to identify the crop and any potential pests or diseases affecting it.
+- Identify the crop name.
+- Determine if the crop is healthy or identify the specific pest or disease affecting it.
+- Provide a confidence score for your analysis.
+- Offer a clear, actionable recommendation for treatment or general care.
 
-  If the crop appears healthy, set the pestOrDisease field to "Healthy".
-  
-  Provide a detailed recommendation for treating the identified issue. If the plant is healthy, provide general care tips.
-
-  Photo: {{media url=photoDataUri}}
-  
-  Output a well-formed JSON object.`,
+Image: {{media url=photoDataUri}}`,
+  config: {
+    model: 'googleai/gemini-1.5-flash-preview',
+  },
 });
 
-const identifyPestDiseaseFromImageFlow = ai.defineFlow(
+export const identifyPestDiseaseFromImage = ai.defineFlow(
   {
     name: 'identifyPestDiseaseFromImageFlow',
     inputSchema: IdentifyPestDiseaseFromImageInputSchema,
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
     stream: true,
   },
-  async (input) => {
-    const { stream } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-preview',
-      prompt: `You are an expert in botany and agricultural diagnostics.
-
-      Analyze the image to identify the crop and any potential pests or diseases affecting it.
-    
-      If the crop appears healthy, set the pestOrDisease field to "Healthy".
-      
-      Provide a detailed recommendation for treating the identified issue. If the plant is healthy, provide general care tips.
-    
-      Photo: {{media url=${input.photoDataUri}}}
-      
-      Output a well-formed JSON object.`,
-      output: {
-        schema: IdentifyPestDiseaseFromImageOutputSchema
-      },
+  async input => {
+    const stream = await ai.generate({
+      prompt: identifyPestDiseaseFromImagePrompt,
+      input: input,
       stream: true,
     });
-    return stream;
+
+    return stream.output();
   }
 );
