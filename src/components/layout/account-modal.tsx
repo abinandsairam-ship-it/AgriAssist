@@ -24,6 +24,7 @@ import {
   useUser,
   initiateEmailSignIn,
   initiateEmailSignUp,
+  initiateGoogleSignIn,
 } from '@/firebase';
 import { getAuth, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { Loader2, User, LogOut, Mail, Phone, Lock } from 'lucide-react';
@@ -58,6 +59,54 @@ const FacebookIcon = () => (
   </svg>
 );
 
+function PasswordResetDialog({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({ variant: 'destructive', title: 'Email Required', description: 'Please enter your email to reset your password.' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions.' });
+      onOpenChange(false); // Close this dialog
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Password Reset Failed', description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="link" size="sm" className="w-full">Forgot password?</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset Password</DialogTitle>
+          <DialogDescription>Enter your email to receive a password reset link.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handlePasswordReset} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email-reset">Email</Label>
+            <Input id="email-reset" type="email" placeholder="m@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" /> : 'Send Reset Link'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export function AccountModal() {
   const { user, isUserLoading } = useUser();
@@ -67,6 +116,7 @@ export function AccountModal() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     setIsLoading(true);
@@ -80,6 +130,18 @@ export function AccountModal() {
       setIsLoading(false);
     }
   };
+  
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await initiateGoogleSignIn(firebaseAuth);
+      toast({ title: 'Signing in with Google...' });
+      setOpen(false);
+    } catch (error: any) {
+       toast({ variant: 'destructive', title: 'Google Sign-in Failed', description: error.message });
+       setIsLoading(false);
+    }
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,26 +170,6 @@ export function AccountModal() {
       setIsLoading(false);
     }
   };
-  
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({ variant: 'destructive', title: 'Email Required', description: 'Please enter your email address to reset your password.' });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const auth = getAuth();
-      await sendPasswordResetEmail(auth, email);
-      toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions to reset your password.' });
-       setOpen(false);
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Password Reset Failed', description: error.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
 
   const renderUserContent = () => (
     <div className='p-6 text-center'>
@@ -170,26 +212,7 @@ export function AccountModal() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <Loader2 className="animate-spin" /> : 'Sign In'}
           </Button>
-           <Dialog>
-             <DialogTrigger asChild>
-                <Button variant="link" size="sm" className="w-full">Forgot password?</Button>
-             </DialogTrigger>
-             <DialogContent>
-                 <DialogHeader>
-                    <DialogTitle>Reset Password</DialogTitle>
-                    <DialogDescription>Enter your email to receive a password reset link.</DialogDescription>
-                 </DialogHeader>
-                 <form onSubmit={handlePasswordReset} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="email-reset">Email</Label>
-                        <Input id="email-reset" type="email" placeholder="m@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading} />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin" /> : 'Send Reset Link'}
-                    </Button>
-                 </form>
-             </DialogContent>
-           </Dialog>
+          <PasswordResetDialog onOpenChange={setResetDialogOpen} />
         </form>
       </TabsContent>
       <TabsContent value="signup">
@@ -215,7 +238,7 @@ export function AccountModal() {
         </div>
 
         <div className='space-y-2'>
-            <Button variant="outline" className="w-full" disabled>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 <GoogleIcon />
                 <span className='ml-2'>Sign in with Google</span>
             </Button>
@@ -233,7 +256,10 @@ export function AccountModal() {
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => {
+        if (resetDialogOpen) return;
+        setOpen(o);
+    }}>
       <DialogTrigger asChild>
         <SidebarMenuButton tooltip="Account">
           {isUserLoading ? (
@@ -246,15 +272,7 @@ export function AccountModal() {
           <span>Account</span>
         </SidebarMenuButton>
       </DialogTrigger>
-      <DialogContent className="p-0 max-w-sm" onInteractOutside={(e) => {
-          // Prevent closing if a nested dialog (like password reset) is open
-          if (e.target instanceof HTMLElement && e.target.closest('[role="dialog"]')) {
-             const nestedDialog = e.target.closest('[role="dialog"]');
-             if(nestedDialog && nestedDialog.parentElement?.closest('[role="dialog"]')){
-                e.preventDefault();
-             }
-          }
-      }}>
+      <DialogContent className="p-0 max-w-sm">
         {isUserLoading ? (
           <div className="p-6 text-center"><Loader2 className="animate-spin mx-auto" /></div>
         ) : user ? (
