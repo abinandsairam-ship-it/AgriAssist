@@ -31,40 +31,37 @@ export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDise
 
 export async function identifyPestDiseaseFromImage(
   input: IdentifyPestDiseaseFromImageInput
-): Promise<any> {
+): Promise<IdentifyPestDiseaseFromImageOutput> {
   return identifyPestDiseaseFromImageFlow(input);
 }
 
 
-const identifyPestDiseaseFromImagePrompt = `You are an expert in botany and agricultural diagnostics.
+const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
+    name: 'identifyPestDiseaseFromImagePrompt',
+    input: { schema: IdentifyPestDiseaseFromImageInputSchema },
+    output: { schema: IdentifyPestDiseaseFromImageOutputSchema },
+    prompt: `You are an expert in botany and agricultural diagnostics.
 
-  Analyze the image to identify the crop and any potential pests or diseases affecting it.
+    Analyze the image to identify the crop and any potential pests or diseases affecting it.
 
-  - If the crop appears healthy, set the pestOrDisease field to "Healthy" and provide a recommendation for maintaining good health.
-  - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
+    - If the crop appears healthy, set the pestOrDisease field to "Healthy" and provide a recommendation for maintaining good health.
+    - If a pest or disease is detected, identify it and provide detailed treatment recommendations and best practices to address the issue.
 
-  Photo: {{media url=photoDataUri}}
-  `;
+    Photo: {{media url=photoDataUri}}
+    `,
+});
 
 const identifyPestDiseaseFromImageFlow = ai.defineFlow(
   {
     name: 'identifyPestDiseaseFromImageFlow',
     inputSchema: IdentifyPestDiseaseFromImageInputSchema,
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
-    stream: true,
   },
   async input => {
-    const {stream} = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
-      prompt: identifyPestDiseaseFromImagePrompt,
-      input: {
-        photoDataUri: input.photoDataUri
-      },
-      output: {
-        schema: IdentifyPestDiseaseFromImageOutputSchema
-      },
-      stream: true,
-    });
-    return stream;
+    const { output } = await identifyPestDiseaseFromImagePrompt(input);
+    if (!output) {
+        throw new Error('The AI model did not return a valid response.');
+    }
+    return output;
   }
 );

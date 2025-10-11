@@ -10,28 +10,25 @@ export async function getPrediction(
   formData: FormData
 ) {
   const imageUri = formData.get('imageUri') as string;
-  const userId = formData.get('userId') as string | undefined;
 
   if (!imageUri) {
     throw new Error('Please upload or capture an image to analyze.');
   }
-
+  
   const stream = createStreamableValue();
 
   (async () => {
     try {
-      const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
-      for await (const delta of resultStream) {
-        stream.update(delta);
-      }
+      const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+      // The result is not a stream, so we just update the value once
+      stream.update(result);
     } catch (e) {
       console.error("AI analysis failed:", e);
-      // It's important to still use stream.error to propagate the error to the client hook
       stream.error({ error: 'AI analysis failed. Please try again.' });
     } finally {
       stream.done();
     }
-  })()
+  })();
 
   return stream.value;
 }

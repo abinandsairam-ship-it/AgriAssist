@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, ImageUp, Loader2, Bot, Scan, AlertTriangle, X } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import { PredictionResult } from '@/components/dashboard/prediction-result';
 import { useToast } from '@/hooks/use-toast';
 import { CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 import type { Prediction } from '@/lib/definitions';
-import { useStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from 'ai/rsc';
 
 export default function CropDetectionPage() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -81,36 +81,37 @@ export default function CropDetectionPage() {
     
     try {
       const stream = await getPrediction(null, formData);
-      const initialPrediction: Prediction = {
-        cropType: '',
-        condition: '',
-        recommendation: '',
-        confidence: 0,
-        timestamp: Date.now(),
-        imageUrl: imageUri,
-        recommendedMedicines: [],
-        relatedVideos: [],
-        userId: user?.uid,
-      };
-
-      for await (const delta of stream) {
-          if (delta.cropName) initialPrediction.cropType = delta.cropName;
-          if (delta.pestOrDisease) initialPrediction.condition = delta.pestOrDisease;
-          if (delta.recommendation) initialPrediction.recommendation = delta.recommendation;
-          if (delta.confidence) initialPrediction.confidence = delta.confidence;
-          setPredictionResult({ ...initialPrediction });
+      
+      let finalPrediction: Prediction | null = null;
+      for await (const delta of readStreamableValue(stream)) {
+        if (delta) {
+          const newPrediction: Prediction = {
+            cropType: delta.cropName || '',
+            condition: delta.pestOrDisease || '',
+            recommendation: delta.recommendation || '',
+            confidence: delta.confidence || 0,
+            timestamp: Date.now(),
+            imageUrl: imageUri,
+            recommendedMedicines: [],
+            relatedVideos: [],
+            userId: user?.uid,
+          };
+          setPredictionResult(newPrediction);
+          finalPrediction = newPrediction;
+        }
       }
 
+
       // Save to Firestore after successful analysis
-       if (user && firestore && initialPrediction.cropType) {
+       if (user && firestore && finalPrediction) {
           try {
             const dataToSave = {
               userId: user.uid || '',
-              timestamp: initialPrediction.timestamp,
-              cropType: initialPrediction.cropType,
-              condition: initialPrediction.condition.split(' (')[0],
-              imageUrl: `https://picsum.photos/seed/${initialPrediction.timestamp}/600/400`,
-              confidence: initialPrediction.confidence,
+              timestamp: finalPrediction.timestamp,
+              cropType: finalPrediction.cropType,
+              condition: finalPrediction.condition.split(' (')[0],
+              imageUrl: `https://picsum.photos/seed/${finalPrediction.timestamp}/600/400`,
+              confidence: finalPrediction.confidence,
             };
             const cropDataCollection = collection(firestore, 'crop_data');
             await addDoc(cropDataCollection, dataToSave);
