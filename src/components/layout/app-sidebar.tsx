@@ -34,6 +34,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChevronRight } from 'lucide-react';
+import { AccountModal } from './account-modal';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -161,12 +162,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Account">
-              <Link href="#">
-                <User />
-                <span>Account</span>
-              </Link>
-            </SidebarMenuButton>
+            <AccountModal />
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Settings" isActive={pathname.startsWith('/dashboard/settings')}>
