@@ -45,6 +45,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type Comment = {
   id: number;
@@ -129,6 +130,26 @@ const initialVideoData: Video[] = [
     dislikes: 7,
     comments: [{ id: 1, user: 'JarnailSingh', text: 'ਬਹੁਤ ਵਧੀਆ ਜਾਣਕਾਰੀ।' }],
     lang: 'pa',
+  },
+  {
+    id: 7,
+    title: 'জৈব চাষের কৌশল',
+    thumbnailUrl: 'https://picsum.photos/seed/bangla-agro/800/450',
+    videoUrl: 'https://www.youtube.com/embed/exam-ple-bn-1',
+    likes: 150,
+    dislikes: 10,
+    comments: [{ id: 1, user: 'KrishokBondhu', text: 'চমৎকার পরামর্শ।' }],
+    lang: 'bn',
+  },
+  {
+    id: 8,
+    title: 'నేల ఆరోగ్య నిర్వహణ',
+    thumbnailUrl: 'https://picsum.photos/seed/telugu-soil/800/450',
+    videoUrl: 'https://www.youtube.com/embed/exam-ple-te-1',
+    likes: 220,
+    dislikes: 15,
+    comments: [{ id: 1, user: 'RaithuBidda', text: 'చాలా ఉపయోగకరంగా ఉంది.' }],
+    lang: 'te',
   },
 ];
 
@@ -229,8 +250,13 @@ export default function AgriVideosPage() {
   const [dislikedVideos, setDislikedVideos] = useState<Set<number>>(new Set());
   const [openComments, setOpenComments] = useState<Set<number>>(new Set());
 
-  const filteredVideos = useMemo(() => {
-    return allVideos.filter(video => video.lang === selectedLanguage);
+  const { videos, isFallback } = useMemo(() => {
+    const langVideos = allVideos.filter(video => video.lang === selectedLanguage);
+    if (langVideos.length > 0) {
+      return { videos: langVideos, isFallback: false };
+    }
+    // Fallback to English if no videos are available for the selected language
+    return { videos: allVideos.filter(video => video.lang === 'en'), isFallback: true };
   }, [allVideos, selectedLanguage]);
 
   const handleLike = (videoId: number) => {
@@ -373,8 +399,17 @@ export default function AgriVideosPage() {
         </div>
       </header>
 
+      {isFallback && selectedLanguage !== 'en' && (
+        <Alert className="mb-8">
+            <AlertTitle>Language Not Available</AlertTitle>
+            <AlertDescription>
+                Videos for the selected language are not available. Showing English videos instead.
+            </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredVideos.map(video => {
+        {videos.map(video => {
           const isLiked = likedVideos.has(video.id);
           const isDisliked = dislikedVideos.has(video.id);
           const areCommentsOpen = openComments.has(video.id);
@@ -504,5 +539,3 @@ export default function AgriVideosPage() {
     </div>
   );
 }
-
-    
