@@ -47,6 +47,11 @@ import {
   Eye,
   Type,
   LogOut,
+  User,
+  Camera,
+  ImageUp,
+  Bot,
+  Pencil,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -59,6 +64,17 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 const SettingsItem = ({
   label,
@@ -111,6 +127,30 @@ const SettingsRow = ({
   );
 };
 
+function EditProfilePhotoDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="absolute bottom-0 right-0 bg-background/50 hover:bg-background rounded-full h-8 w-8">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Profile Photo</DialogTitle>
+          <DialogDescription>Choose an option to update your profile photo.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4 py-4">
+          <Button variant="outline"><ImageUp className="mr-2 h-4 w-4" /> Upload Photo</Button>
+          <Button variant="outline"><Camera className="mr-2 h-4 w-4" /> Use Camera</Button>
+          <Button variant="outline"><Bot className="mr-2 h-4 w-4" /> AI Avatar</Button>
+          <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Remove Photo</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function SettingsPage() {
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -125,7 +165,67 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-8">
-        <Accordion type="multiple" className="space-y-8" defaultValue={['app-settings']}>
+        <Accordion type="multiple" className="space-y-8" defaultValue={['profile', 'app-settings']}>
+          {/* Profile Settings */}
+          <AccordionItem value="profile" className="border-b-0">
+            <Card>
+              <AccordionTrigger className="p-6 text-lg font-semibold [&[data-state=open]>svg]:rotate-180">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile
+                </div>
+              </AccordionTrigger>
+              <AccordionContent asChild>
+                <CardContent className="pt-2">
+                  <div className="flex flex-col items-center gap-6 py-4">
+                    <div className="relative">
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                        <AvatarFallback>U</AvatarFallback>
+                      </Avatar>
+                      <EditProfilePhotoDialog />
+                    </div>
+                    <div className="w-full max-w-sm space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="display-name">Display Name</Label>
+                        <Input id="display-name" defaultValue="Your Name" />
+                      </div>
+                       <div className="space-y-2">
+                        <Label htmlFor="about">About</Label>
+                        <Textarea id="about" defaultValue="Farming enthusiast!" />
+                      </div>
+                    </div>
+                  </div>
+                  <Separator className="my-4" />
+                   <h4 className="text-md font-semibold mb-2 px-1">Privacy Controls</h4>
+                   <SettingsRow icon={Eye} title="Profile Photo Privacy" description="Who can see your profile photo">
+                      <Select defaultValue="everyone">
+                        <SelectTrigger className='w-48'>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="everyone">Everyone</SelectItem>
+                          <SelectItem value="contacts">My Contacts</SelectItem>
+                          <SelectItem value="nobody">Nobody</SelectItem>
+                        </SelectContent>
+                      </Select>
+                   </SettingsRow>
+                    <SettingsRow icon={MessageSquareQuote} title="About Info Privacy" description="Who can see your about information">
+                      <Select defaultValue="everyone">
+                        <SelectTrigger className='w-48'>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="everyone">Everyone</SelectItem>
+                          <SelectItem value="contacts">My Contacts</SelectItem>
+                          <SelectItem value="nobody">Nobody</SelectItem>
+                        </SelectContent>
+                      </Select>
+                   </SettingsRow>
+                </CardContent>
+              </AccordionContent>
+            </Card>
+          </AccordionItem>
           {/* Application Settings */}
           <AccordionItem value="app-settings" className="border-b-0">
             <Card>
@@ -373,3 +473,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
