@@ -1,18 +1,33 @@
 
 'use server';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
-import { identifyPestDiseaseFromImage, IdentifyPestDiseaseFromImageOutput } from '@/ai/flows/identify-pest-disease-flow';
+import { identifyPestDiseaseFromImage, IdentifyPestDiseaseFromImageOutput } from '@/ai/flows/identify-pest-disease-from-image';
+import { recommendTreatmentForCrop } from '@/ai/flows/recommend-treatment-flow';
 
 export async function getPrediction(
   imageUri: string
-): Promise<IdentifyPestDiseaseFromImageOutput> {
+): Promise<IdentifyPestDiseaseFromImageOutput & { recommendation: string }> {
   if (!imageUri) {
     throw new Error('Please upload or capture an image to analyze.');
   }
   
   try {
-    const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
-    return result;
+    const identificationResult = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+    
+    if (!identificationResult || !identificationResult.cropName || !identificationResult.pestOrDisease) {
+        throw new Error('AI analysis failed to identify the crop.');
+    }
+
+    const treatmentResult = await recommendTreatmentForCrop({
+        crop: identificationResult.cropName,
+        problem: identificationResult.pestOrDisease,
+    });
+
+    return {
+        ...identificationResult,
+        recommendation: treatmentResult.recommendation,
+    };
+
   } catch (e: any) {
     console.error("AI analysis failed:", e);
     throw new Error('AI analysis failed. Please try again.');

@@ -184,7 +184,7 @@ function PredictionDisplay({ prediction, isStreaming }: { prediction: Prediction
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
             <Stethoscope className="h-6 w-6 text-primary" />
-            <CardTitle>Doctor's Opinion</CardTitle>
+            <CardTitle>Recommended Treatment</CardTitle>
           </CardHeader>
           <CardContent>
             {isTranslating || (isStreaming && !displayedRecommendation) ? 
