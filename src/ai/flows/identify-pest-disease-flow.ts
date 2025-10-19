@@ -1,10 +1,8 @@
-
 'use server';
-
 /**
- * @fileOverview Identifies the pest or disease from an image of a crop and provides recommendations.
+ * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image.
  *
- * - identifyPestDiseaseFromImage - A function that handles the pest/disease identification process.
+ * - identifyPestDiseaseFromImage - A function that handles the identification process.
  * - IdentifyPestDiseaseFromImageInput - The input type for the identifyPestDiseaseFromImage function.
  * - IdentifyPestDiseaseFromImageOutput - The return type for the identifyPestDiseaseFromImage function.
  */
@@ -19,57 +17,48 @@ const IdentifyPestDiseaseFromImageInputSchema = z.object({
       "A photo of a crop, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
-export type IdentifyPestDiseaseFromImageInput = z.infer<
-  typeof IdentifyPestDiseaseFromImageInputSchema
->;
+export type IdentifyPestDiseaseFromImageInput = z.infer<typeof IdentifyPestDiseaseFromImageInputSchema>;
 
 const IdentifyPestDiseaseFromImageOutputSchema = z.object({
-  cropName: z.string().describe('The name of the identified crop.'),
-  pestOrDisease: z
-    .string()
-    .describe(
-      "The identified pest or disease affecting the crop. If the crop is healthy, this should be 'Healthy'."
-    ),
-  confidence: z
-    .number()
-    .describe('A confidence score (0-1) for the prediction.'),
-  recommendation: z
-    .string()
-    .describe(
-      'A detailed recommendation for treating the identified issue. If healthy, provide general care tips.'
-    ),
+  cropName: z.string().describe('The identified name of the crop in the image.'),
+  pestOrDisease: z.string().describe('The identified pest or disease affecting the crop. If the crop is healthy, this should be "Healthy".'),
+  confidence: z.number().describe('The confidence level of the identification (0-1).'),
 });
-export type IdentifyPestDiseaseFromImageOutput = z.infer<
-  typeof IdentifyPestDiseaseFromImageOutputSchema
->;
+export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDiseaseFromImageOutputSchema>;
+
+export async function identifyPestDiseaseFromImage(
+  input: IdentifyPestDiseaseFromImageInput
+): Promise<IdentifyPestDiseaseFromImageOutput> {
+  return identifyPestDiseaseFromImageFlow(input);
+}
 
 const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   name: 'identifyPestDiseaseFromImagePrompt',
   input: {schema: IdentifyPestDiseaseFromImageInputSchema},
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
-  prompt: `You are an expert agriculturalist. Analyze the provided image of a crop.
+  prompt: `You are an expert in botany and agricultural diagnostics.
 
-- Identify the crop name.
-- Determine if the crop is healthy or identify the specific pest or disease affecting it.
-- Provide a confidence score for your analysis.
-- Offer a clear, actionable recommendation for treatment or general care.
+  Analyze the image to identify the crop and any potential pests or diseases affecting it.
 
-Image: {{media url=photoDataUri}}`,
+  If the crop appears healthy, set the pestOrDisease field to "Healthy".
+
+  Photo: {{media url=photoDataUri}}
+  \n\n  Output in JSON format:
+  {
+    "cropName": "[identified crop name]",
+    "pestOrDisease": "[identified pest or disease, or 'Healthy']",
+    "confidence": [confidence level as a number between 0 and 1]
+  }`,
 });
 
-export const identifyPestDiseaseFromImage = ai.defineFlow(
+const identifyPestDiseaseFromImageFlow = ai.defineFlow(
   {
     name: 'identifyPestDiseaseFromImageFlow',
     inputSchema: IdentifyPestDiseaseFromImageInputSchema,
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
   },
   async input => {
-    const result = await ai.generate({
-      prompt: identifyPestDiseaseFromImagePrompt,
-      input: input,
-      model: 'googleai/gemini-1.5-flash-preview',
-    });
-
-    return result.output()!;
+    const {output} = await identifyPestDiseaseFromImagePrompt(input);
+    return output!;
   }
 );

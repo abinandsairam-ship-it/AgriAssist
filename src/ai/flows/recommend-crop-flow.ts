@@ -1,61 +1,53 @@
-'use server';
 
+'use server';
 /**
- * @fileOverview Recommends treatments for a crop based on identified pest or disease, tailored to user preferences.
+ * @fileOverview Recommends suitable crops based on soil analysis and location data.
  *
- * - recommendTreatmentForCrop - A function that handles the treatment recommendation process.
- * - RecommendTreatmentForCropInput - The input type for the recommendTreatmentForCrop function.
- * - RecommendTreatmentForCropOutput - The return type for the recommendTreatmentForCrop function.
+ * - recommendCrop - A function that handles the crop recommendation process.
+ * - RecommendCropInput - The input type for the recommendCrop function.
+ * - RecommendCropOutput - The return type for the recommendCrop function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const RecommendTreatmentForCropInputSchema = z.object({
-  pestOrDisease: z.string().describe('The identified pest or disease affecting the crop.'),
-  cropName: z.string().describe('The name of the affected crop.'),
-  organicPreference: z
-    .boolean()
-    .describe(
-      'Whether the user prefers organic treatment recommendations (true) or chemical treatment recommendations (false).'
-    ),
+const RecommendCropInputSchema = z.object({
+  soilImageUri: z.string().describe("A photo of the soil, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  soilType: z.string().describe('The type of soil (e.g., Loamy, Sandy, Clay).'),
+  soilPh: z.number().describe('The pH level of the soil.'),
 });
-export type RecommendTreatmentForCropInput = z.infer<typeof RecommendTreatmentForCropInputSchema>;
+export type RecommendCropInput = z.infer<typeof RecommendCropInputSchema>;
 
-const RecommendTreatmentForCropOutputSchema = z.object({
-  treatmentRecommendations: z
+const RecommendCropOutputSchema = z.object({
+  recommendation: z
     .string()
-    .describe('Recommended treatments and best practices for the identified pest or disease.'),
+    .describe('A detailed recommendation of suitable crops for the given soil conditions, including reasoning.'),
 });
-export type RecommendTreatmentForCropOutput = z.infer<typeof RecommendTreatmentForCropOutputSchema>;
+export type RecommendCropOutput = z.infer<typeof RecommendCropOutputSchema>;
 
-export async function recommendTreatmentForCrop(input: RecommendTreatmentForCropInput): Promise<RecommendTreatmentForCropOutput> {
-  return recommendTreatmentForCropFlow(input);
+export async function recommendCrop(input: RecommendCropInput): Promise<RecommendCropOutput> {
+  return recommendCropFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'recommendTreatmentForCropPrompt',
-  input: {schema: RecommendTreatmentForCropInputSchema},
-  output: {schema: RecommendTreatmentForCropOutputSchema},
-  prompt: `You are an expert agricultural advisor. A user has identified the following pest or disease affecting their crop:
+  name: 'recommendCropPrompt',
+  input: {schema: RecommendCropInputSchema},
+  output: {schema: RecommendCropOutputSchema},
+  prompt: `You are an expert agronomist. Analyze the provided soil data to recommend the most suitable crops.
 
-Pest or Disease: {{{pestOrDisease}}}
-Crop Name: {{{cropName}}}
+Soil Analysis:
+- Soil Type: {{{soilType}}}
+- Soil pH: {{{soilPh}}}
+- Soil Image: {{media url=soilImageUri}}
 
-The user has the following preference for treatment recommendations:
-
-Organic Preference: {{#if organicPreference}}Organic treatments only{{else}}Chemical treatments preferred{{/if}}
-
-Based on this information, provide detailed treatment recommendations and best practices to address the issue. Tailor the recommendations to the user's preference for organic or chemical solutions.
-
-Treatment Recommendations:`,
+Based on this information, provide a detailed recommendation for at least 3 crops that would thrive in these conditions. Explain your reasoning for each crop. The recommendation should be formatted as a single string.`,
 });
 
-const recommendTreatmentForCropFlow = ai.defineFlow(
+const recommendCropFlow = ai.defineFlow(
   {
-    name: 'recommendTreatmentForCropFlow',
-    inputSchema: RecommendTreatmentForCropInputSchema,
-    outputSchema: RecommendTreatmentForCropOutputSchema,
+    name: 'recommendCropFlow',
+    inputSchema: RecommendCropInputSchema,
+    outputSchema: RecommendCropOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);

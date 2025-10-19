@@ -238,11 +238,12 @@ export default function CropSuitabilityPage() {
                  <div className="flex gap-2">
                   <Button
                     type="button"
+                    variant="secondary"
                     className="w-full"
                     onClick={captureFromVideo}
                     disabled={!hasCameraPermission || isPending}
                   >
-                    <Scan className="mr-2 h-4 w-4" />
+                    <Camera className="mr-2 h-4 w-4" />
                     Use Camera
                   </Button>
                   <Button
