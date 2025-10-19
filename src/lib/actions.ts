@@ -1,15 +1,11 @@
 
 'use server';
 import { translatePredictionResults } from '@/ai/flows/translate-prediction-results';
-import { identifyPestDiseaseFromImage } from '@/ai/flows/identify-pest-disease-flow';
-import { createStreamableValue } from 'ai/rsc';
+import { identifyPestDiseaseFromImage, IdentifyPestDiseaseFromImageOutput } from '@/ai/flows/identify-pest-disease-flow';
 
 export async function getPrediction(
-  prevState: any,
-  formData: FormData
-) {
-  const imageUri = formData.get('imageUri') as string;
-
+  imageUri: string
+): Promise<IdentifyPestDiseaseFromImageOutput> {
   if (!imageUri) {
     throw new Error('Please upload or capture an image to analyze.');
   }
@@ -17,7 +13,7 @@ export async function getPrediction(
   try {
     const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
     return result;
-  } catch (e) {
+  } catch (e: any) {
     console.error("AI analysis failed:", e);
     throw new Error('AI analysis failed. Please try again.');
   }

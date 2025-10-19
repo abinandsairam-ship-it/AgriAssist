@@ -46,6 +46,7 @@ export default function CropDetectionPage() {
         }
         setHasCameraPermission(true);
       } catch (err) {
+        console.error("Camera permission denied:", err);
         setHasCameraPermission(false);
       }
     };
@@ -74,16 +75,9 @@ export default function CropDetectionPage() {
     setPredictionResult(null);
     setError(null);
     
-    const formData = new FormData();
-    formData.append('imageUri', imageUri);
-    if (user?.uid) {
-      formData.append('userId', user.uid);
-    }
-    
     try {
-      const result = await getPrediction(null, formData);
+      const newPredictionData = await getPrediction(imageUri);
       
-      const newPredictionData = result as IdentifyPestDiseaseFromImageOutput;
       const finalPrediction: Prediction = {
             cropType: newPredictionData.cropName || '',
             condition: newPredictionData.pestOrDisease || '',
@@ -121,7 +115,7 @@ export default function CropDetectionPage() {
         }
       
     } catch (e: any) {
-      const errorMessage = e?.error || e.message || "An unknown error occurred.";
+      const errorMessage = e?.message || "An unknown error occurred.";
       setError(errorMessage);
       toast({
         variant: 'destructive',
@@ -164,6 +158,9 @@ export default function CropDetectionPage() {
     setImageUri(null);
     setPredictionResult(null);
     setError(null);
+    if(fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   const renderAnalysisState = () => {
@@ -174,7 +171,7 @@ export default function CropDetectionPage() {
             <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
             <CardTitle>Analyzing...</CardTitle>
             <CardDescription>
-              Our AI is inspecting your image.
+              Our AI is inspecting your image. This may take a moment.
             </CardDescription>
           </CardHeader>
         </Card>
