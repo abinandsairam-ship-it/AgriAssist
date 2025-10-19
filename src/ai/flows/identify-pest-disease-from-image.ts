@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image.
@@ -44,8 +43,12 @@ const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   If the crop appears healthy, set the pestOrDisease field to "Healthy".
 
   Photo: {{media url=photoDataUri}}
-  
-  Provide only the JSON output.`,
+  \n\n  Output in JSON format:
+  {
+    "cropName": "[identified crop name]",
+    "pestOrDisease": "[identified pest or disease, or 'Healthy']",
+    "confidence": [confidence level as a number between 0 and 1]
+  }`,
 });
 
 const identifyPestDiseaseFromImageFlow = ai.defineFlow(
@@ -55,10 +58,7 @@ const identifyPestDiseaseFromImageFlow = ai.defineFlow(
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
   },
   async input => {
-    const {output} = await identifyPestDiseaseFromImagePrompt.generate({
-        input,
-        model: 'googleai/gemini-1.5-flash-preview'
-    });
+    const {output} = await identifyPestDiseaseFromImagePrompt(input);
     return output!;
   }
 );

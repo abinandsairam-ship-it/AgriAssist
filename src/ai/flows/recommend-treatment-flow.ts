@@ -2,58 +2,62 @@
 'use server';
 
 /**
- * @fileOverview Recommends a treatment plan for a crop based on its problem.
+ * @fileOverview Recommends a treatment plan for a given crop and problem.
  *
  * - recommendTreatmentForCrop - A function that handles the treatment recommendation process.
- * - RecommendTreatmentInput - The input type for the recommendTreatmentForCrop function.
- * - RecommendTreatmentOutput - The return type for the recommendTreatmentForCrop function.
+ * - RecommendTreatmentForCropInput - The input type for the recommendTreatmentForCrop function.
+ * - RecommendTreatmentForCropOutput - The return type for the recommendTreatmentForCrop function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const RecommendTreatmentInputSchema = z.object({
-  crop: z.string().describe('The type of crop (e.g., Tomato, Corn).'),
-  problem: z.string().describe('The identified disease or pest (e.g., Early Blight, Aphids).'),
+const RecommendTreatmentForCropInputSchema = z.object({
+  crop: z.string().describe('The name of the crop.'),
+  problem: z.string().describe('The diagnosed problem (e.g., "Blight" or "Healthy").'),
 });
-export type RecommendTreatmentInput = z.infer<typeof RecommendTreatmentInputSchema>;
+export type RecommendTreatmentForCropInput = z.infer<typeof RecommendTreatmentForCropInputSchema>;
 
-const RecommendTreatmentOutputSchema = z.object({
+const RecommendTreatmentForCropOutputSchema = z.object({
   recommendation: z
     .string()
-    .describe('A detailed, step-by-step treatment plan for the given crop and problem.'),
+    .describe('A detailed, step-by-step treatment plan. If the crop is healthy, this should be a brief confirmation and general care tips.'),
 });
-export type RecommendTreatmentOutput = z.infer<typeof RecommendTreatmentOutputSchema>;
+export type RecommendTreatmentForCropOutput = z.infer<typeof RecommendTreatmentForCropOutputSchema>;
 
-export async function recommendTreatmentForCrop(input: RecommendTreatmentInput): Promise<RecommendTreatmentOutput> {
-  return recommendTreatmentFlow(input);
+export async function recommendTreatmentForCrop(input: RecommendTreatmentForCropInput): Promise<RecommendTreatmentForCropOutput> {
+  return recommendTreatmentForCropFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'recommendTreatmentPrompt',
-  input: {schema: RecommendTreatmentInputSchema},
-  output: {schema: RecommendTreatmentOutputSchema},
-  prompt: `You are an expert agronomist providing a treatment plan.
+  name: 'recommendTreatmentForCropPrompt',
+  input: {schema: RecommendTreatmentForCropInputSchema},
+  output: {schema: RecommendTreatmentForCropOutputSchema},
+  prompt: `You are an expert agronomist providing a treatment plan for a farmer.
 
 Crop: {{{crop}}}
 Problem: {{{problem}}}
 
-Based on the crop and the identified problem, provide a detailed, step-by-step treatment plan. If the problem is 'Healthy', provide general advice for keeping the crop healthy. Structure your response as a clear, actionable guide. Include both organic and chemical treatment options if applicable.
+Based on the crop and the diagnosed problem, provide a clear, step-by-step recommendation.
+
+If the problem is 'Healthy', provide a brief confirmation that the plant looks good and give one or two general tips for maintaining its health (e.g., watering, sunlight).
+
+If there is a disease or pest, provide a detailed treatment plan including:
+1.  Immediate actions to take (e.g., pruning, isolating).
+2.  Organic and chemical treatment options, if applicable.
+3.  Long-term prevention strategies.
+
+Structure your response as a single, informative paragraph.
 `,
 });
 
-const recommendTreatmentFlow = ai.defineFlow(
+const recommendTreatmentForCropFlow = ai.defineFlow(
   {
-    name: 'recommendTreatmentFlow',
-    inputSchema: RecommendTreatmentInputSchema,
-    outputSchema: RecommendTreatmentOutputSchema,
+    name: 'recommendTreatmentForCropFlow',
+    inputSchema: RecommendTreatmentForCropInputSchema,
+    outputSchema: RecommendTreatmentForCropOutputSchema,
   },
   async input => {
-    if (input.problem.toLowerCase() === 'healthy') {
-        return {
-            recommendation: `The ${input.crop} plant appears to be healthy. To maintain its health, ensure consistent watering, proper sunlight exposure, and balanced soil nutrients. Regularly inspect for any signs of pests or diseases to catch issues early.`
-        };
-    }
     const {output} = await prompt(input);
     return output!;
   }
