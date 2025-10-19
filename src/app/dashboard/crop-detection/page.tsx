@@ -81,13 +81,10 @@ export default function CropDetectionPage() {
     }
     
     try {
-      const stream = await getPrediction(null, formData);
+      const result = await getPrediction(null, formData);
       
-      let finalPrediction: Prediction | null = null;
-      for await (const delta of readStreamableValue(stream)) {
-        if (delta) {
-          const newPredictionData = delta as IdentifyPestDiseaseFromImageOutput;
-          const newPrediction: Prediction = {
+      const newPredictionData = result as IdentifyPestDiseaseFromImageOutput;
+      const finalPrediction: Prediction = {
             cropType: newPredictionData.cropName || '',
             condition: newPredictionData.pestOrDisease || '',
             recommendation: newPredictionData.recommendation || '',
@@ -97,12 +94,8 @@ export default function CropDetectionPage() {
             recommendedMedicines: [],
             relatedVideos: [],
             userId: user?.uid,
-          };
-          setPredictionResult(newPrediction);
-          finalPrediction = newPrediction;
-        }
-      }
-
+      };
+      setPredictionResult(finalPrediction);
 
       // Save to Firestore after successful analysis
        if (user && firestore && finalPrediction) {
@@ -181,12 +174,9 @@ export default function CropDetectionPage() {
             <Loader2 className="mx-auto h-16 w-16 text-primary animate-spin" />
             <CardTitle>Analyzing...</CardTitle>
             <CardDescription>
-              {predictionResult?.cropType ? `Identified ${predictionResult.cropType}...` : 'Our AI is inspecting your image.'}
+              Our AI is inspecting your image.
             </CardDescription>
           </CardHeader>
-           <CardContent>
-            {predictionResult && <PredictionResult result={predictionResult} isStreaming={true} />}
-          </CardContent>
         </Card>
       );
     }
@@ -318,5 +308,3 @@ export default function CropDetectionPage() {
     </div>
   );
 }
-
-    

@@ -55,9 +55,6 @@ const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
 - Offer a clear, actionable recommendation for treatment or general care.
 
 Image: {{media url=photoDataUri}}`,
-  config: {
-    model: 'googleai/gemini-1.5-flash-preview',
-  },
 });
 
 export const identifyPestDiseaseFromImage = ai.defineFlow(
@@ -65,15 +62,14 @@ export const identifyPestDiseaseFromImage = ai.defineFlow(
     name: 'identifyPestDiseaseFromImageFlow',
     inputSchema: IdentifyPestDiseaseFromImageInputSchema,
     outputSchema: IdentifyPestDiseaseFromImageOutputSchema,
-    stream: true,
   },
   async input => {
-    const stream = await ai.generate({
+    const result = await ai.generate({
       prompt: identifyPestDiseaseFromImagePrompt,
       input: input,
-      stream: true,
+      model: 'googleai/gemini-1.5-flash-preview',
     });
 
-    return stream.output();
+    return result.output()!;
   }
 );

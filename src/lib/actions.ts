@@ -14,23 +14,13 @@ export async function getPrediction(
     throw new Error('Please upload or capture an image to analyze.');
   }
   
-  const stream = createStreamableValue();
-
-  (async () => {
-    try {
-      const resultStream = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
-      for await (const delta of resultStream) {
-        stream.update(delta);
-      }
-    } catch (e) {
-      console.error("AI analysis failed:", e);
-      stream.error({ error: 'AI analysis failed. Please try again.' });
-    } finally {
-      stream.done();
-    }
-  })();
-
-  return stream.value;
+  try {
+    const result = await identifyPestDiseaseFromImage({ photoDataUri: imageUri });
+    return result;
+  } catch (e) {
+    console.error("AI analysis failed:", e);
+    throw new Error('AI analysis failed. Please try again.');
+  }
 }
 
 
