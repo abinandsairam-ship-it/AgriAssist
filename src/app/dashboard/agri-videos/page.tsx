@@ -202,13 +202,13 @@ function TranslateCommentDialog({ comment }: { comment: Comment }) {
           <div className="flex items-center gap-2">
             <Select
               value={targetLanguage}
-              onValueChange={value => setTargetLanguage(value)}
+              onValueChange={(value) => setTargetLanguage(value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Language" />
               </SelectTrigger>
               <SelectContent>
-                {LANGUAGES.map(lang => (
+                {LANGUAGES.map((lang) => (
                   <SelectItem key={lang.value} value={lang.value}>
                     {lang.label}
                   </SelectItem>
@@ -247,16 +247,23 @@ export default function AgriVideosPage() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
   const [likedVideos, setLikedVideos] = useState<Set<number>>(new Set());
-  const [dislikedVideos, setDislikedVideos] = useState<Set<number>>(new Set());
+  const [dislikedVideos, setDislikedVideos] = useState<Set<number>>(
+    new Set()
+  );
   const [openComments, setOpenComments] = useState<Set<number>>(new Set());
 
   const { videos, isFallback } = useMemo(() => {
-    const langVideos = allVideos.filter(video => video.lang === selectedLanguage);
+    const langVideos = allVideos.filter(
+      (video) => video.lang === selectedLanguage
+    );
     if (langVideos.length > 0) {
       return { videos: langVideos, isFallback: false };
     }
     // Fallback to English if no videos are available for the selected language
-    return { videos: allVideos.filter(video => video.lang === 'en'), isFallback: true };
+    return {
+      videos: allVideos.filter((video) => video.lang === 'en'),
+      isFallback: true,
+    };
   }, [allVideos, selectedLanguage]);
 
   const handleLike = (videoId: number) => {
@@ -265,8 +272,8 @@ export default function AgriVideosPage() {
     const isLiked = newLikedVideos.has(videoId);
     const isDisliked = newDislikedVideos.has(videoId);
 
-    setAllVideos(prevVideos =>
-      prevVideos.map(video => {
+    setAllVideos((prevVideos) =>
+      prevVideos.map((video) => {
         if (video.id === videoId) {
           let newLikes = video.likes;
           let newDislikes = video.dislikes;
@@ -291,15 +298,15 @@ export default function AgriVideosPage() {
     setLikedVideos(newLikedVideos);
     setDislikedVideos(newDislikedVideos);
   };
-  
+
   const handleDislike = (videoId: number) => {
     const newLikedVideos = new Set(likedVideos);
     const newDislikedVideos = new Set(dislikedVideos);
     const isLiked = newLikedVideos.has(videoId);
     const isDisliked = newDislikedVideos.has(videoId);
 
-    setAllVideos(prevVideos =>
-      prevVideos.map(video => {
+    setAllVideos((prevVideos) =>
+      prevVideos.map((video) => {
         if (video.id === videoId) {
           let newLikes = video.likes;
           let newDislikes = video.dislikes;
@@ -325,17 +332,16 @@ export default function AgriVideosPage() {
     setDislikedVideos(newDislikedVideos);
   };
 
-
   const handleCommentChange = (videoId: number, text: string) => {
-    setNewComment(prev => ({ ...prev, [videoId]: text }));
+    setNewComment((prev) => ({ ...prev, [videoId]: text }));
   };
 
   const handleCommentSubmit = (videoId: number) => {
     const commentText = newComment[videoId];
     if (!commentText || !commentText.trim()) return;
 
-    setAllVideos(prevVideos =>
-      prevVideos.map(video => {
+    setAllVideos((prevVideos) =>
+      prevVideos.map((video) => {
         if (video.id === videoId) {
           const newCommentObj: Comment = {
             id: Date.now(),
@@ -353,16 +359,16 @@ export default function AgriVideosPage() {
     // Clear the input field
     handleCommentChange(videoId, '');
   };
-  
+
   const toggleComments = (videoId: number) => {
-    setOpenComments(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(videoId)) {
-            newSet.delete(videoId);
-        } else {
-            newSet.add(videoId);
-        }
-        return newSet;
+    setOpenComments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(videoId)) {
+        newSet.delete(videoId);
+      } else {
+        newSet.add(videoId);
+      }
+      return newSet;
     });
   };
 
@@ -383,13 +389,13 @@ export default function AgriVideosPage() {
           <Languages className="h-5 w-5 text-muted-foreground" />
           <Select
             value={selectedLanguage}
-            onValueChange={value => setSelectedLanguage(value)}
+            onValueChange={(value) => setSelectedLanguage(value)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
             <SelectContent>
-              {LANGUAGES.map(lang => (
+              {LANGUAGES.map((lang) => (
                 <SelectItem key={lang.value} value={lang.value}>
                   {lang.label}
                 </SelectItem>
@@ -401,15 +407,16 @@ export default function AgriVideosPage() {
 
       {isFallback && selectedLanguage !== 'en' && (
         <Alert className="mb-8">
-            <AlertTitle>Language Not Available</AlertTitle>
-            <AlertDescription>
-                Videos for the selected language are not available. Showing English videos instead.
-            </AlertDescription>
+          <AlertTitle>Language Not Available</AlertTitle>
+          <AlertDescription>
+            Videos for the selected language are not available. Showing
+            English videos instead.
+          </AlertDescription>
         </Alert>
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {videos.map(video => {
+        {videos.map((video) => {
           const isLiked = likedVideos.has(video.id);
           const isDisliked = dislikedVideos.has(video.id);
           const areCommentsOpen = openComments.has(video.id);
@@ -460,7 +467,7 @@ export default function AgriVideosPage() {
                     />{' '}
                     {video.likes}
                   </Button>
-                   <Button
+                  <Button
                     variant="ghost"
                     size="sm"
                     className="flex items-center gap-1"
@@ -473,7 +480,12 @@ export default function AgriVideosPage() {
                     />{' '}
                     {video.dislikes}
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex items-center gap-1" onClick={() => toggleComments(video.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => toggleComments(video.id)}
+                  >
                     <MessageSquare className="h-4 w-4" />{' '}
                     {video.comments.length}
                   </Button>
@@ -485,7 +497,7 @@ export default function AgriVideosPage() {
                     <h4 className="font-semibold text-sm">Comments</h4>
                     <div className="w-full space-y-3 max-h-32 overflow-y-auto">
                       {video.comments.length > 0 ? (
-                        video.comments.map(comment => (
+                        video.comments.map((comment) => (
                           <div
                             key={comment.id}
                             className="text-sm flex items-center justify-between gap-2"
@@ -511,10 +523,10 @@ export default function AgriVideosPage() {
                         rows={1}
                         className="flex-grow resize-none"
                         value={newComment[video.id] || ''}
-                        onChange={e =>
+                        onChange={(e) =>
                           handleCommentChange(video.id, e.target.value)
                         }
-                        onKeyDown={e => {
+                        onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleCommentSubmit(video.id);
@@ -525,6 +537,7 @@ export default function AgriVideosPage() {
                         size="icon"
                         variant="ghost"
                         onClick={() => handleCommentSubmit(video.id)}
+                        aria-label="Submit comment"
                       >
                         <Send className="h-5 w-5" />
                       </Button>
