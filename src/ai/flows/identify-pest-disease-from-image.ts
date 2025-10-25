@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image.
+ * @fileOverview An AI agent that identifies the crop and any potential pests or diseases from an image, and recommends a treatment plan.
  *
- * - identifyPestDiseaseFromImage - A function that handles the identification process.
+ * - identifyPestDiseaseFromImage - A function that handles the identification and recommendation process.
  * - IdentifyPestDiseaseFromImageInput - The input type for the identifyPestDiseaseFromImage function.
  * - IdentifyPestDiseaseFromImageOutput - The return type for the identifyPestDiseaseFromImage function.
  */
@@ -23,6 +23,7 @@ const IdentifyPestDiseaseFromImageOutputSchema = z.object({
   cropName: z.string().describe('The identified name of the crop in the image.'),
   pestOrDisease: z.string().describe('The identified pest or disease affecting the crop. If the crop is healthy, this should be "Healthy".'),
   confidence: z.number().describe('The confidence level of the identification (0-1).'),
+  recommendation: z.string().describe('A detailed, step-by-step treatment plan. If the crop is healthy, this should be a brief confirmation and general care tips.'),
 });
 export type IdentifyPestDiseaseFromImageOutput = z.infer<typeof IdentifyPestDiseaseFromImageOutputSchema>;
 
@@ -38,17 +39,14 @@ const identifyPestDiseaseFromImagePrompt = ai.definePrompt({
   output: {schema: IdentifyPestDiseaseFromImageOutputSchema},
   prompt: `You are an expert in botany and agricultural diagnostics.
 
-  Analyze the image to identify the crop and any potential pests or diseases affecting it.
-
-  If the crop appears healthy, set the pestOrDisease field to "Healthy".
+  1. Analyze the image to identify the crop and any potential pests or diseases affecting it.
+  2. If the crop appears healthy, set the pestOrDisease field to "Healthy".
+  3. Based on your diagnosis, provide a clear, step-by-step treatment recommendation in the 'recommendation' field.
+     - If the problem is 'Healthy', provide a brief confirmation that the plant looks good and give one or two general tips for maintaining its health (e.g., watering, sunlight).
+     - If there is a disease or pest, provide a detailed treatment plan including immediate actions, organic/chemical options, and long-term prevention strategies.
 
   Photo: {{media url=photoDataUri}}
-  \n\n  Output in JSON format:
-  {
-    "cropName": "[identified crop name]",
-    "pestOrDisease": "[identified pest or disease, or 'Healthy']",
-    "confidence": [confidence level as a number between 0 and 1]
-  }`,
+  `,
 });
 
 const identifyPestDiseaseFromImageFlow = ai.defineFlow(
